@@ -14,6 +14,11 @@ do not establish complete gameplay parity with Minecraft or SULFUR.
 Tested host: Windows x64, SULFUR Unity 6000.3.22f1, BepInEx 5.4.23.5 (Mono).
 Client: Minecraft 26.3, Fabric Loader 0.19.5, Fabric API for 26.3, Java 25.
 
+For a self-contained Windows package, use [the portable launcher](launcher/README.md).
+Extract its contents directly beside `Sulfur.exe` and run `启动火湖MC.bat`. It starts Steam
+and the bundled Java/Minecraft client, installs missing loader files, and uses a separate
+fresh Minecraft world with the local player name `Steve`.
+
 1. Put `SulfurCraft.dll` and `sulfurcraft-assets` together in
    `SULFUR/BepInEx/plugins/SulfurCraft/`.
 2. Put the SULFUR Fabric jar in the selected Minecraft instance's `mods` directory. Keep only
