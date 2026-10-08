@@ -325,6 +325,8 @@ public final class SkyLink {
 		public int cameraMode;
 		public float cameraDistance;
 		public float sulfurMoveX, sulfurMoveZ, sulfurBodyWidth, sulfurBodyHeight;
+		public long sulfurFrameQpc;
+		public float sulfurFramePartial;
 	}
 
 	public static void writeMcState(McState st) {
@@ -374,6 +376,8 @@ public final class SkyLink {
 			s.set(JAVA_FLOAT, b + MS_SULFUR_MOVE_Z, st.sulfurMoveZ);
 			s.set(JAVA_FLOAT, b + MS_SULFUR_BODY_WIDTH, st.sulfurBodyWidth);
 			s.set(JAVA_FLOAT, b + MS_SULFUR_BODY_HEIGHT, st.sulfurBodyHeight);
+			s.set(JAVA_LONG, b + MS_SULFUR_FRAME_QPC, st.sulfurFrameQpc);
+			s.set(JAVA_FLOAT, b + MS_SULFUR_FRAME_PARTIAL, st.sulfurFramePartial);
 		}
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}

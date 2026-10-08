@@ -29,6 +29,8 @@ namespace SulfurCraft.Link
         public int CameraMode;
         public float CameraDistance;
         public float MoveX, MoveZ, BodyWidth, BodyHeight;
+        public long FrameQpc;
+        public float FramePartial;
     }
 
     internal struct McEvent

@@ -5,7 +5,7 @@ The BepInEx plugin exports SULFUR collision geometry and NPC proxies, forwards i
 events, and displays Minecraft's hand/UI, block meshes, models, skin and equipment in Unity.
 The Skyrim host remains the default when building the Fabric mod without `-PbridgeHost=sulfur`.
 
-The current host version is **0.1.4**, paired with Fabric mod **0.1.2-sulfur.3**. Use that client
+The current host version is **0.1.5**, paired with Fabric mod **0.1.2-sulfur.4**. Use that client
 version or a compatible later build. This is an experimental integration; successful builds and transport tests
 do not establish complete gameplay parity with Minecraft or SULFUR.
 
@@ -54,8 +54,11 @@ processing to dynamic input when needed; both previous settings are restored on 
   rasterizer also supplies coarse shapes for Minecraft's world logic. Moving doors invalidate
   their old and new regions instead of waiting for the static refresh interval.
 - Minecraft owns normal locomotion. Native walking/camera smoothing is disabled during takeover
-  and restored on exit. The camera uses SkyCraft's bounded tick history with adaptive delay;
-  walking bob and eye height use that same timeline. Mouse look uses the current host input.
+  and restored on exit. Position, walking bob and eye height use Minecraft's published render
+  phase and its QPC timestamp.
+  Host frames advance within that already collision-resolved tick, with no extra history delay
+  and no extrapolation past its endpoint. Tick data and render phase are published together
+  after rendering. Mouse look uses the current host input.
   The owned camera pose is reapplied just before that camera renders, with drift diagnostics.
 - SULFUR's ladder trigger volumes make Minecraft players climbable on both client and server.
   The native ladder velocity updater is suspended during takeover to prevent competing movement.
@@ -87,8 +90,8 @@ dotnet run --project sulfur/tests/MotionTests.csproj -c Release
 
 # With JAVA_HOME pointing to Java 25
 cd fabric
-./gradlew.bat build '-PbridgeHost=sulfur' '-Pversion=0.1.2-sulfur.3' --no-daemon
-./gradlew.bat runClient '-PbridgeHost=sulfur' '-Pversion=0.1.2-sulfur.3' --no-daemon
+./gradlew.bat build '-PbridgeHost=sulfur' '-Pversion=0.1.2-sulfur.4' --no-daemon
+./gradlew.bat runClient '-PbridgeHost=sulfur' '-Pversion=0.1.2-sulfur.4' --no-daemon
 ```
 
 To build `sulfur/build/assets/sulfurcraft-assets`, open `sulfur/assets` in Unity and run
@@ -100,8 +103,9 @@ Checks cover named shared memory, ownership recovery, rings/seqlocks, overlay bu
 movement layout, SAT geometry/allocation, camera timing under jitter, ray picking and terrain
 movement. The SULFUR build also runs a native-ladder volume/epoch regression. Runtime logs have
 confirmed plugin loading, the hidden client, native collision transport and skin/armor export.
-Movement feel, native ladder traversal, each door type, crack appearance and third-person visual
-acceptance must still be assessed in gameplay; high frame rates alone are insufficient evidence.
+Gameplay feedback on 0.1.5 confirms that walking animation and player position now start
+together. General movement feel, native ladder traversal, each door type, crack appearance and
+third-person visual acceptance still need gameplay assessment; high frame rates alone are insufficient evidence.
 
 Set `[Diagnostics] Enabled = true` to report frame rate, bridge CPU stages, mesh/crack/ladder
 counts, disabled native camera smoothers, camera drift and contact pushes every five seconds.

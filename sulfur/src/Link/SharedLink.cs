@@ -81,6 +81,7 @@ namespace SulfurCraft.Link
                 state.PreviousBob = F32(b + 176); state.CurrentBob = F32(b + 180);
                 state.CameraMode = I32(b + 192); state.CameraDistance = F32(b + 196);
                 state.MoveX = F32(b + 200); state.MoveZ = F32(b + 204); state.BodyWidth = F32(b + 208); state.BodyHeight = F32(b + 212);
+                state.FrameQpc = unchecked((long)U64(b + 216)); state.FramePartial = F32(b + 224);
                 Thread.MemoryBarrier();
                 if (sequence == U32(b)) return sequence != 0;
             }

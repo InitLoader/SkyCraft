@@ -69,7 +69,6 @@ namespace SulfurCraft.Game
                 if (world.Select(manager) || (player.transform.position - lastPosition).sqrMagnitude > 4f * world.Units * world.Units)
                 {
                     teleportPosition = world.ToMc(Feet); teleportSequence++; NeedsCollisionReset = true;
-                    motion.Reset();
                 }
                 link.ReadMc(out mc);
                 if (!ScreenOpen && !manager.HasLock(GameManager.PlayerLocks.Camera) && Application.isFocused && Mouse.current != null)
@@ -127,7 +126,6 @@ namespace SulfurCraft.Game
             cursorLock = Cursor.lockState; cursorVisible = Cursor.visible;
             teleportPosition = world.ToMc(Feet); teleportSequence++; NeedsCollisionReset = true;
             lastPosition = player.transform.position;
-            motion.Reset();
             cameraReady = false; CameraDrift = CameraAngleDrift = 0;
         }
         private void Disable(Behaviour behaviour)
@@ -193,7 +191,6 @@ namespace SulfurCraft.Game
             Cursor.lockState = cursorLock; Cursor.visible = cursorVisible;
             player = null; body = null;
             cameraReady = false;
-            motion.Reset();
         }
         public void Dispose() { Restore(); input.Dispose(); }
     }

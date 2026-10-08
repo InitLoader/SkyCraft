@@ -32,6 +32,8 @@ internal static class TransportTests
             client.Write(Protocol.Mc + 168, 1.25f); client.Write(Protocol.Mc + 172, 1.5f); client.Write(Protocol.Mc + 176, .02f); client.Write(Protocol.Mc + 180, .03f);
             client.Write(Protocol.Mc + 200, .2f); client.Write(Protocol.Mc + 204, -.1f); client.Write(Protocol.Mc + 208, .6f); client.Write(Protocol.Mc + 212, 1.8f);
             Check(host.ReadMc(out state) && state.PreviousWalk == 1.25f && state.CurrentBob == .03f && state.MoveX == .2f && state.MoveZ == -.1f && state.BodyWidth == .6f && state.BodyHeight == 1.8f, "Walk history and SULFUR movement extension layout");
+            client.Write(Protocol.Mc + 216, 123456789L); client.Write(Protocol.Mc + 224, .375f);
+            Check(host.ReadMc(out state) && state.FrameQpc == 123456789L && state.FramePartial == .375f, "SULFUR render-frame clock layout");
             client.Write(Protocol.Events + 128, 1u); client.Write(Protocol.Events + 132, 42u); client.Write(Protocol.Events + 136, 7.5f); client.Write(Protocol.Events, 1ul);
             McEvent received = default; host.DrainEvents(ev => received = ev);
             Check(received.Id == 42 && received.A == 7.5f && client.ReadUInt64(Protocol.Events + 64) == 1, "Combat event drain");

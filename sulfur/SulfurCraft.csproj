@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>SulfurCraft</AssemblyName>
-    <Version>0.1.4</Version>
+    <Version>0.1.5</Version>
     <SulfurDir Condition="'$(SulfurDir)' == ''">$(SULFUR_GAME_DIR)</SulfurDir>
     <GameManaged>$(SulfurDir)\Sulfur_Data\Managed</GameManaged>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>

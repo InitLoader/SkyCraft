@@ -185,6 +185,8 @@ public final class Proto {
 	public static final long MS_SULFUR_MOVE_Z = 0xCC;
 	public static final long MS_SULFUR_BODY_WIDTH = 0xD0;
 	public static final long MS_SULFUR_BODY_HEIGHT = 0xD4;
+	public static final long MS_SULFUR_FRAME_QPC = 0xD8;
+	public static final long MS_SULFUR_FRAME_PARTIAL = 0xE0;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;

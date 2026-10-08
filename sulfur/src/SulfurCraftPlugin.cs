@@ -13,7 +13,7 @@ using UnityEngine.InputSystem;
 
 namespace SulfurCraft
 {
-    [BepInPlugin("dev.skycraft.sulfur", "SulfurCraft", "0.1.4")]
+    [BepInPlugin("dev.skycraft.sulfur", "SulfurCraft", "0.1.5")]
     [DefaultExecutionOrder(10000)]
     public sealed class SulfurCraftPlugin : BaseUnityPlugin
     {
