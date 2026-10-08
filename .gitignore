@@ -18,3 +18,12 @@ CMakeUserPresets.json
 fabric/run-guest*/
 __pycache__/
 *.pyc
+sulfur/bin/
+sulfur/obj/
+sulfur/**/bin/
+sulfur/**/obj/
+sulfur/build/
+sulfur/assets/Library/
+sulfur/assets/Temp/
+sulfur/assets/Logs/
+sulfur/assets/UserSettings/

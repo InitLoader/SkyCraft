@@ -113,6 +113,7 @@ public final class SkyLink {
 			if (pid != skyrimPid) {
 				// Skyrim restarted and reset the shared state; start our side over too.
 				skyrimPid = pid;
+				shm.set(JAVA_INT, OFF_HEADER + H_MC_PID, (int) ProcessHandle.current().pid());
 				overlayBack = 1;
 				generation++;
 				SkyCraft.LOG.info("SkyCraft: Skyrim instance changed (pid {})", pid);
@@ -323,6 +324,7 @@ public final class SkyLink {
 		public float tickMs = 50.0F;
 		public int cameraMode;
 		public float cameraDistance;
+		public float sulfurMoveX, sulfurMoveZ, sulfurBodyWidth, sulfurBodyHeight;
 	}
 
 	public static void writeMcState(McState st) {
@@ -367,6 +369,12 @@ public final class SkyLink {
 		s.set(JAVA_FLOAT, b + MS_TICK_MS, st.tickMs);
 		s.set(JAVA_INT, b + MS_CAMERA_MODE, st.cameraMode);
 		s.set(JAVA_FLOAT, b + MS_CAMERA_DISTANCE, st.cameraDistance);
+		if (dev.skycraft.HostProfile.SULFUR) {
+			s.set(JAVA_FLOAT, b + MS_SULFUR_MOVE_X, st.sulfurMoveX);
+			s.set(JAVA_FLOAT, b + MS_SULFUR_MOVE_Z, st.sulfurMoveZ);
+			s.set(JAVA_FLOAT, b + MS_SULFUR_BODY_WIDTH, st.sulfurBodyWidth);
+			s.set(JAVA_FLOAT, b + MS_SULFUR_BODY_HEIGHT, st.sulfurBodyHeight);
+		}
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

@@ -11,7 +11,7 @@ public final class Proto {
 	public static final int VERSION = 11;
 	// A second client on the same PC (multiplayer testing) talks to its own stand-in Skyrim:
 	// -Dskycraft.link=Local\SkyCraft_guest (see tools/fake_guest.py).
-	public static final String MAPPING_NAME = System.getProperty("skycraft.link", "Local\\SkyCraft_v1");
+	public static final String MAPPING_NAME = System.getProperty("skycraft.link", dev.skycraft.HostProfile.SULFUR ? "Local\\SulfurCraft_v1" : "Local\\SkyCraft_v1");
 	public static final double UNITS_PER_BLOCK = 70.0;
 
 	public static final long OFF_HEADER = 0x0;
@@ -180,6 +180,11 @@ public final class Proto {
 	public static final long MS_TICK_MS = 0xB8;
 	public static final long MS_CAMERA_MODE = 0xC0;
 	public static final long MS_CAMERA_DISTANCE = 0xC4;
+	// SULFUR-only extension in the reserved tail of McState; Skyrim ignores these fields.
+	public static final long MS_SULFUR_MOVE_X = 0xC8;
+	public static final long MS_SULFUR_MOVE_Z = 0xCC;
+	public static final long MS_SULFUR_BODY_WIDTH = 0xD0;
+	public static final long MS_SULFUR_BODY_HEIGHT = 0xD4;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -221,6 +226,7 @@ public final class Proto {
 	public static final int COL_CLEAR = 1;
 	public static final int COL_REGION = 2;
 	public static final int COL_TRIS = 3;
+	public static final int COL_SULFUR_LADDERS = 4;
 	public static final int COL_TRI_BYTES = 40;
 	public static final int TRI_STAIR_HELPER = 1;
 	public static final int TRI_DIGGABLE = 2;

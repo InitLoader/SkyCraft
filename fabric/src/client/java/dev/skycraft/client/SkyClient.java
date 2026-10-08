@@ -54,6 +54,13 @@ public final class SkyClient {
 		return linked;
 	}
 
+	public static void sulfurMovement(Vec3 movement, float width, float height) {
+		mc.sulfurMoveX = (float) movement.x;
+		mc.sulfurMoveZ = (float) movement.z;
+		mc.sulfurBodyWidth = width;
+		mc.sulfurBodyHeight = height;
+	}
+
 	/**
 	 * True once Skyrim has connected in this session. From then on Minecraft never touches the
 	 * real mouse or keyboard again (even if Skyrim closes), since its window is hidden.

@@ -15,12 +15,15 @@ import org.slf4j.LoggerFactory;
 
 public final class SkyCraft implements ModInitializer {
 	public static final String MOD_ID = "skycraft";
-	public static final String WORLD_NAME = "SkyCraft";
+	public static final String WORLD_NAME = HostProfile.SULFUR ? "SulfurCraft" : "SkyCraft";
 	public static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
 	private static final String KIT2_TAG = "skycraft_builder_kit";
 
 	@Override
 	public void onInitialize() {
+		if (HostProfile.SULFUR) {
+			dev.skycraft.world.SkyDig.destruction = false;
+		}
 		SkyCombat.init();
 		dev.skycraft.net.SkyNet.init();
 		dev.skycraft.world.SkyDig.init();
