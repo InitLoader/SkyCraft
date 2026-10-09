@@ -17,3 +17,13 @@ Duckov 0.1.4 is not accepted for gameplay. The initial shield-test reply was cor
 The earlier zero-warning native build, 4,131 transport/math assertions and 22 Minecraft tests remain build/static evidence only. They do not validate a working 0.1.4 startup or native melee/projectile shield blocking. The exact startup failure trigger remains unknown. A healthy rollback session does not establish a permanent graphics fix.
 
 The current 0.1.3 installation retains the user's previously confirmed improvements to outdoor invisible walls/hovering and native F9 restoration. Shield integration is not present in this rollback. Existing 0.1.4 package artifacts must not be delivered as a verified repair.
+
+## Recurrence and external renderer isolation
+
+The user subsequently reported another startup freeze on the restored 0.1.3. The installed DLL hash still matched the saved 0.1.3 DLL, so the earlier successful session did not establish a permanent fix and the failure was not exclusive to 0.1.4.
+
+The preserved ReShade log provides a closer trigger: at 14:19:25, RenoDX DLSS initialized its direct neural-rendering path and private output, followed immediately by `DXGI_ERROR_DEVICE_REMOVED` with removal reason `DXGI_ERROR_DEVICE_HUNG`. Windows recorded NVIDIA SM warp/MMU exceptions at the same time; Minecraft reported the host link down at 14:19:33. The official DuckovDLSS5 Mod was marked inactive, but the root ReShade addon was still running. The underlying fault inside the addon/driver is not established by these logs.
+
+With both bridge processes already closed, only `renodx-dlss.addon64` was moved out of the root addon-loading path to `DuckovCraft/backups/render-conflict-20261009-142436/`; its SHA256 was preserved and ReShade.ini was copied beside it. ReShade itself, the official Mods, Minecraft files and saves/settings were retained. No registry or driver settings were changed.
+
+The ordinary launcher then connected both games. ReShade no longer logged RenoDX evaluation or device loss, native updates continued and the user supplied a working first-person screenshot with Minecraft items and placed blocks, confirming recovery. This supports the external neural-rendering path as the practical trigger for this installation; prolonged/repeated-start stability and the separate 0.1.4 shield feature remain unverified. Keep the backup addon outside the loading path while using this recovered configuration.

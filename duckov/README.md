@@ -1,6 +1,6 @@
 # DuckovCraft (experimental)
 
-2026-10-09 验证状态：0.1.4 启动时出现黑屏和 D3D11 设备失效，盾牌测试没有通过。当前本机已回退到 0.1.3，用户确认 MC 视角恢复且没有再次黑屏。不要将 0.1.4 的构建成功视为可用性验证；失败原因仍在定位，详见 [启动失败与回退记录](VALIDATION.md)。
+2026-10-09 验证状态：本机回退到 0.1.3 后仍再次启动卡死，说明回退本身没有解决问题。ReShade 日志显示 RenoDX DLSS 神经渲染启动时发生 `DEVICE_HUNG`；该附加组件在官方 DLSS Mod 关闭时仍然运行。将根目录 `renodx-dlss.addon64` 备份移出加载路径后，0.1.3 成功进入 MC 视角，用户截图确认恢复。当前保留该状态；0.1.4 盾牌补丁仍未验收。详见 [启动失败与回退记录](VALIDATION.md)。
 
 DuckovCraft 将原版 Minecraft 客户端的移动、手部、背包、物品、方块、近战和 F5 第三人称角色接入《逃离鸭科夫》。Duckov 端由官方 `Duckov.Modding.ModManager` 加载 `DuckovCraft.ModBehaviour`，不依赖 BepInEx 或 Harmony。
 
