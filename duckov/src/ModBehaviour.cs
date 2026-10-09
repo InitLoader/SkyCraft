@@ -69,7 +69,7 @@ namespace DuckovCraft
                 if (settings.Diagnostics && Time.unscaledTime >= nextDiagnostics)
                 {
                     nextDiagnostics = Time.unscaledTime + 5;
-                    log.LogInfo($"active={player.Active}, linked={connected}, overlayFrames={overlay.Frames}, sections={world.Sections}, cracks={world.Cracks}, collisionRegions={collision.RegionsSent}, triangles={collision.TrianglesSent}, actors={combat.ActorCount}, hits={combat.Hits}");
+                    log.LogInfo($"active={player.Active}, linked={connected}, overlayFrames={overlay.Frames}, sections={world.Sections}, cracks={world.Cracks}, collisionRegions={collision.RegionsSent}, triangles={collision.TrianglesSent}, actors={combat.ActorCount}, hits={combat.Hits}, interactions={player.Interactions}, hiddenLasers={player.HiddenLasers}, disabledDepthOfField={player.DisabledDepthOfField}");
                 }
             }
             catch (Exception e) { Fail(e); }

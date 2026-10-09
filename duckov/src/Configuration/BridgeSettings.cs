@@ -16,6 +16,7 @@ namespace DuckovCraft.Configuration
         public float IncomingDamageMultiplier = .2f;
         public float NearClip = .05f;
         public bool LowLatency = true;
+        public bool DisableDepthOfField = true;
         public bool Diagnostics = true;
 
         public static BridgeSettings Load(string directory)

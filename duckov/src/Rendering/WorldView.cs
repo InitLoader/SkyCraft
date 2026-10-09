@@ -50,8 +50,6 @@ namespace DuckovCraft.Rendering
         private Texture2D atlasPatch;
         private byte[] pendingScene;
         private byte[] pendingAvatar;
-        private Bounds? dirtyNavigation;
-        private float nextNavigation;
         public int Sections => sections.Count;
         public int Cracks { get; private set; }
 
@@ -183,7 +181,7 @@ namespace DuckovCraft.Rendering
         private void Solids(byte[] data)
         {
             Require(data, 16); var key = new Vector3Int(I(data, 0), I(data, 4), I(data, 8));
-            if (solids.TryGetValue(key, out Surface old)) { MarkNavigation(old.Mesh.bounds, old.Object.transform.position); old.Dispose(); solids.Remove(key); }
+            if (solids.TryGetValue(key, out Surface old)) { old.Dispose(); solids.Remove(key); }
             if (I(data, 12) == 0) return;
             Require(data, 528);
             var vertices = new List<Vector3>(); var indices = new List<int>();
@@ -203,7 +201,7 @@ namespace DuckovCraft.Rendering
             surface.Renderer.enabled = false;
             surface.Mesh.SetVertices(vertices); surface.Mesh.SetTriangles(indices, 0); surface.Mesh.RecalculateBounds();
             surface.Object.AddComponent<MeshCollider>().sharedMesh = surface.Mesh;
-            solids[key] = surface; MarkNavigation(surface.Mesh.bounds, surface.Object.transform.position);
+            solids[key] = surface;
         }
 
         public void UpdateEntities(SharedLink link)
@@ -242,18 +240,6 @@ namespace DuckovCraft.Rendering
                 item.Mesh.Clear(); item.Mesh.SetVertices(vertices); item.Mesh.SetTriangles(indices, 0); item.Mesh.SetUVs(0, uv); item.Mesh.colors32 = colors; item.Mesh.RecalculateBounds();
             }
             for (int i = used; i < items.Count; i++) items[i].Object.SetActive(false);
-            if (dirtyNavigation.HasValue && Time.unscaledTime >= nextNavigation && global::AstarPath.active != null)
-            {
-                global::AstarPath.active.UpdateGraphs(new Pathfinding.GraphUpdateObject(dirtyNavigation.Value));
-                dirtyNavigation = null; nextNavigation = Time.unscaledTime + .5f;
-            }
-        }
-
-        private void MarkNavigation(Bounds bounds, Vector3 position)
-        {
-            bounds.center += position; bounds.Expand(world.Units);
-            if (dirtyNavigation.HasValue) { Bounds previous = dirtyNavigation.Value; previous.Encapsulate(bounds); dirtyNavigation = previous; }
-            else dirtyNavigation = bounds;
         }
 
         private static readonly Vector3Int[] Directions = { Vector3Int.down, Vector3Int.up, new Vector3Int(0, 0, -1), new Vector3Int(0, 0, 1), Vector3Int.left, Vector3Int.right };
@@ -289,7 +275,7 @@ namespace DuckovCraft.Rendering
         {
             pendingScene = pendingAvatar = null;
             foreach (var pair in sections.Values) foreach (var s in pair) s.Dispose(); sections.Clear();
-            foreach (var s in solids.Values) { MarkNavigation(s.Mesh.bounds, s.Object.transform.position); s.Dispose(); } solids.Clear();
+            foreach (var s in solids.Values) s.Dispose(); solids.Clear();
             foreach (var s in scene) s.Dispose(); scene.Clear();
             foreach (var s in avatar) s.Dispose(); avatar.Clear();
             foreach (var s in items) s.Dispose(); items.Clear();

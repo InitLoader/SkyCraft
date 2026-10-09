@@ -35,7 +35,7 @@ namespace DuckovCraft.Rendering
             if (texture == null || texture.width != width || texture.height != height)
             {
                 if (texture != null) Object.Destroy(texture);
-                texture = new Texture2D(width, height, TextureFormat.RGBA32, false, true) { filterMode = FilterMode.Point };
+                texture = new Texture2D(width, height, TextureFormat.RGBA32, false, false) { filterMode = FilterMode.Point };
                 image.texture = texture;
             }
             texture.LoadRawTextureData(data);

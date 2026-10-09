@@ -6,6 +6,7 @@ using Duckov.Scenes;
 using Duckov.UI;
 using DuckovCraft.Configuration;
 using DuckovCraft.Link;
+using DuckovCraft.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,7 +21,8 @@ namespace DuckovCraft.Game
         private readonly InputBridge input;
         private readonly MotionInterpolator motion = new MotionInterpolator(Stopwatch.Frequency);
         private readonly Dictionary<Behaviour, bool> behaviours = new Dictionary<Behaviour, bool>();
-        private readonly Dictionary<Renderer, bool> renderers = new Dictionary<Renderer, bool>();
+        private readonly NativePresentation presentation = new NativePresentation();
+        private readonly CameraEffectsBridge effects = new CameraEffectsBridge();
         private readonly List<InputAction> actions = new List<InputAction>();
         private CharacterMainControl player;
         private ECM2.CharacterMovement motor;
@@ -43,6 +45,9 @@ namespace DuckovCraft.Game
         public Vector3 Feet => player != null ? player.transform.position - rootFromFeet : Vector3.zero;
         public bool ScreenOpen => (mc.Flags & Protocol.McScreenOpen) != 0;
         public bool NeedsCollisionReset { get; private set; }
+        public int Interactions { get; private set; }
+        public int HiddenLasers => presentation.LaserCount;
+        public int DisabledDepthOfField => effects.Count;
 
         public PlayerBridge(SharedLink link, WorldMapping world, BridgeSettings settings, GameObject owner)
         {
@@ -53,11 +58,19 @@ namespace DuckovCraft.Game
         {
             NeedsCollisionReset = false;
             var keyboard = Keyboard.current;
-            if (Active && !ScreenOpen && keyboard != null)
+            if (Active && !ScreenOpen && !GameManager.Paused && View.ActiveView == null && keyboard != null)
             {
                 if (keyboard.f10Key.wasPressedThisFrame) PauseMenu.Show();
                 else if (keyboard.f6Key.wasPressedThisFrame) InventoryView.Show();
-                else if (keyboard.rKey.wasPressedThisFrame) { player.RefreshInteractTarget(); player.Interact(); }
+                else if (keyboard.rKey.wasPressedThisFrame)
+                {
+                    if (player.interactAction.Running) player.interactAction.StopAction();
+                    else
+                    {
+                        player.interactAction.SearchInteractableAround(); player.Interact();
+                        if (player.interactAction.Running) Interactions++;
+                    }
+                }
             }
             LevelManager level = LevelManager.Instance;
             CharacterMainControl next = CharacterMainControl.Main;
@@ -88,9 +101,10 @@ namespace DuckovCraft.Game
             }
             int width = settings.OverlayWidth;
             int height = Mathf.Clamp(Mathf.RoundToInt(width * (float)Screen.height / Math.Max(1, Screen.width)), 360, 2160);
-            input.Update(Active, ScreenOpen, width, height);
+            bool actionLocked = Active && player.CurrentAction != null && !player.CurrentAction.CanMove();
+            input.Update(Active && !actionLocked, ScreenOpen, width, height);
             uint seq = link.BeginWrite(Protocol.Sky);
-            link.Put(Protocol.Sky + 4, Active ? Protocol.InGame : Protocol.MenuOpen | (loading ? Protocol.Loading : 0));
+            link.Put(Protocol.Sky + 4, Active ? Protocol.InGame | (actionLocked ? Protocol.MenuOpen : 0) : Protocol.MenuOpen | (loading ? Protocol.Loading : 0));
             link.Put(Protocol.Sky + 8, world.WorldId); link.Put(Protocol.Sky + 12, world.Epoch);
             link.PutDouble(Protocol.Sky + 16, teleportPosition.x); link.PutDouble(Protocol.Sky + 24, teleportPosition.y); link.PutDouble(Protocol.Sky + 32, teleportPosition.z);
             link.PutFloat(Protocol.Sky + 40, yaw); link.PutFloat(Protocol.Sky + 44, pitch); link.Put(Protocol.Sky + 48, teleportSequence);
@@ -123,8 +137,8 @@ namespace DuckovCraft.Game
             player.movementControl.MovementEnabled = false;
             motor.collider.enabled = colliderEnabled;
             Disable(level.GameCamera); Disable(level.GameCamera.brain);
-            foreach (Renderer renderer in player.GetComponentsInChildren<Renderer>(true))
-                if (renderer != null) { renderers[renderer] = renderer.enabled; renderer.enabled = false; }
+            presentation.TakeOver(player);
+            if (settings.DisableDepthOfField) effects.TakeOver(level.GameCamera);
             HUDManager.RegisterHideToken(owner);
             yaw = player.modelRoot.eulerAngles.y + 180; pitch = 0;
             teleportPosition = world.ToMc(Feet); teleportSequence++; NeedsCollisionReset = true;
@@ -167,7 +181,11 @@ namespace DuckovCraft.Game
         }
         public void PrepareCamera(Camera value)
         {
-            if (Active && cameraReady && value == camera) camera.transform.SetPositionAndRotation(renderedPosition, renderedRotation);
+            if (Active && value == camera)
+            {
+                presentation.Apply(); effects.Apply();
+                if (cameraReady) camera.transform.SetPositionAndRotation(renderedPosition, renderedRotation);
+            }
         }
         private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
         private void Restore()
@@ -179,8 +197,7 @@ namespace DuckovCraft.Game
             if (motor != null) motor.collider.enabled = colliderEnabled;
             foreach (var entry in behaviours) if (entry.Key != null) entry.Key.enabled = entry.Value;
             behaviours.Clear();
-            foreach (var entry in renderers) if (entry.Key != null) entry.Key.enabled = entry.Value;
-            renderers.Clear();
+            presentation.Dispose(); effects.Dispose();
             foreach (InputAction action in actions) action.Enable(); actions.Clear();
             if (body != null) { body.isKinematic = kinematic; body.useGravity = gravity; body.interpolation = interpolation; }
             if (camera != null)
