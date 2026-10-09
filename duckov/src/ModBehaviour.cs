@@ -1,5 +1,4 @@
 using System;
-using Duckov.Utilities;
 using DuckovCraft.Configuration;
 using DuckovCraft.Game;
 using DuckovCraft.Link;
@@ -60,8 +59,8 @@ namespace DuckovCraft
                 if (player.NeedsCollisionReset) collision.Reset(link);
                 if (player.Active)
                 {
-                    int mask = GameplayDataSettings.Layers.groundLayerMask | GameplayDataSettings.Layers.wallLayerMask | GameplayDataSettings.Layers.halfObsticleLayer;
-                    collision.Update(link, player.Feet, mask);
+                    collision.Update(link, player.Feet, player.CollisionMask);
+                    player.SetCollisionReady(collision.Ready(link, player.Feet, player.BodyWidth, player.BodyHeight));
                 }
                 combat.Update();
                 if (connected) { link.DrainRender(world.Receive, 256); world.FinishFrame(); world.UpdateEntities(link); }
@@ -69,7 +68,8 @@ namespace DuckovCraft
                 if (settings.Diagnostics && Time.unscaledTime >= nextDiagnostics)
                 {
                     nextDiagnostics = Time.unscaledTime + 5;
-                    log.LogInfo($"active={player.Active}, linked={connected}, overlayFrames={overlay.Frames}, sections={world.Sections}, cracks={world.Cracks}, collisionRegions={collision.RegionsSent}, triangles={collision.TrianglesSent}, actors={combat.ActorCount}, hits={combat.Hits}, interactions={player.Interactions}, hiddenLasers={player.HiddenLasers}, disabledDepthOfField={player.DisabledDepthOfField}");
+                    log.LogInfo($"active={player.Active}, linked={connected}, overlayFrames={overlay.Frames}, sections={world.Sections}, cracks={world.Cracks}, collisionRegions={collision.RegionsSent}, triangles={collision.TrianglesSent}, collisionReady={player.CollisionReady}, groundRecoveries={player.GroundRecoveries}, actors={combat.ActorCount}, hits={combat.Hits}, interactions={player.Interactions}, hiddenLasers={player.HiddenLasers}, disabledDepthOfField={player.DisabledDepthOfField}");
+                    log.LogInfo(BridgeDiagnostics.Describe(player));
                 }
             }
             catch (Exception e) { Fail(e); }

@@ -1,6 +1,8 @@
 using System;
 using System.IO.MemoryMappedFiles;
 using DuckovCraft.Link;
+using DuckovCraft.World;
+using UnityEngine;
 
 internal static class TransportTests
 {
@@ -64,6 +66,23 @@ internal static class TransportTests
             ulong head = host.U64(Protocol.Input);
             Check(!host.Input(Protocol.Hurt, 3, 500) && host.U64(Protocol.Input) == head, "Full input ring reports failure without overwriting pending damage");
         }
-        Console.WriteLine($"PASS: {assertions} shared-memory transport checks");
+        Check(!CollisionCoverage.Ready(4, 128, 4, .6, 1.8, (x, y, z) => false), "Unsent collision cannot permit movement");
+        Check(CollisionCoverage.Ready(4, 128, 4, .6, 1.8, (x, y, z) => x == 0 && (y == 15 || y == 16) && z == 0), "Interior feet require ground and body regions");
+        Check(!CollisionCoverage.Ready(7, 128, 4, .6, 1.8, (x, y, z) => x == 0), "Approaching a boundary waits for the next region");
+        Check(!CollisionCoverage.Ready(4, 128, 4, .6, 1.8, (x, y, z) => y == 16), "Ground below a vertical region boundary must arrive");
+        Check(!CollisionCoverage.Ready(-.1, 128, -.1, .6, 1.8, (x, y, z) => x >= 0 && z >= 0), "Negative coordinates must not truncate into a positive region");
+        Check(CollisionCoverage.Ready(-.1, 128, -.1, .6, 1.8, (x, y, z) => (x == -1 || x == 0) && (z == -1 || z == 0) && (y == 15 || y == 16)), "Negative boundary coverage includes both sides");
+        Check(!CollisionCoverage.Ready(4, 4, 4, .6, 9, (x, y, z) => y == 0), "Tall bodies require the upper region");
+        var a = new Vector3(0, 0, 0); var b = new Vector3(1, 0, 0);
+        var c = new Vector3(0, 0, -1); var d = new Vector3(1, 2, -1);
+        Triangle[] cell = TerrainCell.Triangles(a, b, c, d, 1);
+        Check(cell[0].C == d && cell[1].B == d, "Non-planar terrain must use the native raised diagonal");
+        cell = TerrainCell.Triangles(a, b, c, d, 0);
+        Check(cell[0].C == c && cell[1].A == b, "Non-planar terrain must preserve the native low diagonal");
+        Check(Vector3.Cross(cell[0].B - cell[0].A, cell[0].C - cell[0].A).y > 0
+            && Vector3.Cross(cell[1].B - cell[1].A, cell[1].C - cell[1].A).y > 0, "Terrain winding remains upward after world Z reflection");
+        Check(!CollisionGeometry.Overlaps(cell[0], new Vector3(.5f, 1, -.5f), .1f), "Low terrain must not invent a floating floor");
+        Check(CollisionGeometry.Overlaps(cell[0], new Vector3(.25f, 0, -.25f), .1f), "Terrain contact must remain on the real surface");
+        Console.WriteLine($"PASS: {assertions} transport and collision checks");
     }
 }

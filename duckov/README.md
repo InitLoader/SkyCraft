@@ -27,6 +27,10 @@ Minecraft 独立存档在 `DuckovCraft/minecraft/saves/SulfurCraft`，首次启�
 
 0.1.1 修正原生交互前清空目标的问题；读条期间停止向 MC 转发移动和攻击输入。桥接接管时暂时关闭原生景深，并持续隐藏本地玩家的原生渲染器、枪械激光线和命中标记，关闭桥接后恢复。MC 界面按 sRGB 读取，避免在线性颜色空间中发白。`DisableDepthOfField` 可在 `settings.json` 配置。
 
+0.1.2 修正角色销毁/切场景后漏清理接管状态的问题，避免重复留下 HUD 隐藏令牌。退出桥接时恢复原生瞄准目标并强制刷新 Cinemachine 相机与焦点。脚底坐标改用 ECM2 原生 API；碰撞导出沿用原生角色实际碰撞层，等待 MC 消费脚底和身体周围的碰撞区域后再放行移动。下降轨迹穿过真实原生地面时触发位置同步恢复，避免漏碰撞直接落入地下。地面高度、碰撞准备状态与恢复次数会写入日志，仍需实机验证复杂区域与 F9 反复切换。
+
+0.1.2 的 F9 恢复已由用户确认正常，但室外仍报告空气墙和悬空。0.1.3 为 `TerrainCollider` 接入独立高度网格导出：读取当前区域的原生网格与洞口，在网格中心查询原生碰撞面以匹配三角形对角线，不再用通用多方向射线把不同地形表面连在一起。此修复仍需在报告问题的室外位置复测，不能据编译或传输检查认定所有碰撞已正确。
+
 ## 范围与验证边界
 
 这是首个实验版本。MC 方块、实体和第三人称角色在 Duckov 世界中绘制；原生地形碰撞按附近区域传给 MC，移动沿用已验证的渲染时间同步。MC 近战及原版弓箭命中通过原生 Health.Hurt 结算；原生最终伤害转给 MC，MC 死亡通知原生死亡流程，并保留 Duckov 基地免死规则。
@@ -41,7 +45,7 @@ MC 方块保留物理碰撞，但暂不刷新 Duckov 的 AI 寻路图；原生�
 
 ```powershell
 dotnet build duckov/DuckovCraft.csproj -c Release '-p:DuckovDir=D:\soft\steam\steamapps\common\Escape from Duckov'
-dotnet run --project duckov/tests/TransportTests.csproj -c Release
+dotnet run --project duckov/tests/TransportTests.csproj -c Release '-p:DuckovDir=D:\soft\steam\steamapps\common\Escape from Duckov'
 ```
 
 `duckov/assets/duckovcraft-assets` 复用 `sulfur/assets/Assets` 中保存的材质与着色器构建产物；无需运行场景重建脚本。游戏 DLL 不随 Mod 分发。

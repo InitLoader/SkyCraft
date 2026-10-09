@@ -22,6 +22,7 @@ namespace DuckovCraft.World
         private readonly Dictionary<MeshCollider, TransformedMesh> transformed = new Dictionary<MeshCollider, TransformedMesh>();
         private readonly HashSet<Mesh> failedMeshes = new HashSet<Mesh>();
         private readonly Dictionary<Vector3Int, float> sent = new Dictionary<Vector3Int, float>();
+        private readonly Dictionary<Vector3Int, ulong> published = new Dictionary<Vector3Int, ulong>();
         private readonly HashSet<Vector3Int> dirty = new HashSet<Vector3Int>();
         private readonly Dictionary<Collider, MovingCollider> moving = new Dictionary<Collider, MovingCollider>();
         private readonly List<Collider> removed = new List<Collider>();
@@ -41,7 +42,7 @@ namespace DuckovCraft.World
         public void Reset(SharedLink link)
         {
             epoch = world.Epoch;
-            sent.Clear(); meshes.Clear(); transformed.Clear(); failedMeshes.Clear(); ready = null;
+            sent.Clear(); published.Clear(); meshes.Clear(); transformed.Clear(); failedMeshes.Clear(); ready = null;
             dirty.Clear(); moving.Clear(); nextMovingPoll = 0;
             RegionsSent = TrianglesSent = 0;
             link.Collision(1, BitConverter.GetBytes(epoch));
@@ -61,6 +62,7 @@ namespace DuckovCraft.World
             {
                 if (!link.Collision(3, ready.Triangles) || !link.Collision(2, ready.Voxels)) return;
                 sent[ready.Key] = Time.unscaledTime;
+                if (!published.ContainsKey(ready.Key)) published[ready.Key] = link.U64(Protocol.Collision);
                 RegionsSent++;
                 TrianglesSent += BitConverter.ToInt32(ready.Triangles, 28);
                 ready = null;
@@ -97,7 +99,17 @@ namespace DuckovCraft.World
             for (int x = Mathf.FloorToInt(low.x / 8); x <= Mathf.FloorToInt(high.x / 8); x++)
                 for (int y = Mathf.FloorToInt(low.y / 8); y <= Mathf.FloorToInt(high.y / 8); y++)
                     for (int z = Mathf.FloorToInt(low.z / 8); z <= Mathf.FloorToInt(high.z / 8); z++)
-                        dirty.Add(new Vector3Int(x, y, z));
+                    {
+                        var key = new Vector3Int(x, y, z); dirty.Add(key); published.Remove(key);
+                    }
+        }
+
+        public bool Ready(SharedLink link, Vector3 feet, float width, float height)
+        {
+            Vector3 mc = world.ToMc(feet);
+            ulong consumed = link.U64(Protocol.Collision + 64);
+            return CollisionCoverage.Ready(mc.x, mc.y, mc.z, width, height,
+                (x, y, z) => published.TryGetValue(new Vector3Int(x, y, z), out ulong end) && consumed >= end);
         }
 
         private void PollMovingColliders()
@@ -133,7 +145,11 @@ namespace DuckovCraft.World
                 if (!collider.enabled || collider.isTrigger || collider.GetComponentInParent<CharacterMainControl>() != null || collider.GetComponentInParent<Rendering.BridgeGeometry>() != null) continue;
                 if (!moving.ContainsKey(collider) && (collider.attachedRigidbody != null || collider.GetComponentInParent<Animator>() != null || collider.GetComponentInParent<InteractableBase>() != null))
                     moving[collider] = new MovingCollider { Matrix = collider.transform.localToWorldMatrix, Bounds = collider.bounds, Active = true };
-                if (collider is MeshCollider meshCollider && meshCollider.sharedMesh != null)
+                if (collider is TerrainCollider terrain)
+                {
+                    foreach (var triangle in TerrainCollision.Collect(terrain, bounds, world)) Add(output, triangle, bounds);
+                }
+                else if (collider is MeshCollider meshCollider && meshCollider.sharedMesh != null)
                 {
                     Mesh mesh = meshCollider.sharedMesh;
                     if (!meshes.TryGetValue(mesh, out MeshData data))

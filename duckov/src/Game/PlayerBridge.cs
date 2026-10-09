@@ -27,10 +27,12 @@ namespace DuckovCraft.Game
         private CharacterMainControl player;
         private ECM2.CharacterMovement motor;
         private Camera camera;
+        private GameCamera nativeCamera;
         private Rigidbody body;
+        private bool takenOver, collisionReady;
         private bool kinematic, gravity, movementEnabled, colliderEnabled;
         private RigidbodyInterpolation interpolation;
-        private Vector3 rootFromFeet, cameraPosition, lastPosition, teleportPosition;
+        private Vector3 rootFromFeet, cameraPosition, lastPosition, teleportPosition, nativeAimOffset;
         private Quaternion cameraRotation;
         private float fov, nearClip, yaw, pitch;
         private uint teleportSequence;
@@ -40,7 +42,7 @@ namespace DuckovCraft.Game
         private Vector3 renderedPosition;
         private Quaternion renderedRotation;
         private bool cameraReady;
-        public bool Active => player != null;
+        public bool Active => takenOver && player != null;
         public CharacterMainControl Player => player;
         public Vector3 Feet => player != null ? player.transform.position - rootFromFeet : Vector3.zero;
         public bool ScreenOpen => (mc.Flags & Protocol.McScreenOpen) != 0;
@@ -48,6 +50,11 @@ namespace DuckovCraft.Game
         public int Interactions { get; private set; }
         public int HiddenLasers => presentation.LaserCount;
         public int DisabledDepthOfField => effects.Count;
+        public int CollisionMask => motor != null ? (int)motor.collisionLayers : 0;
+        public float BodyWidth => mc.BodyWidth > 0 ? mc.BodyWidth : .6f;
+        public float BodyHeight => mc.BodyHeight > 0 ? mc.BodyHeight : 1.8f;
+        public int GroundRecoveries { get; private set; }
+        public bool CollisionReady => collisionReady;
 
         public PlayerBridge(SharedLink link, WorldMapping world, BridgeSettings settings, GameObject owner)
         {
@@ -78,8 +85,8 @@ namespace DuckovCraft.Game
             bool nativeUi = GameManager.Paused || View.ActiveView != null || DialogueUI.Active || CameraMode.Active;
             bool takeOver = settings.Enabled && link.Connected && !loading && !nativeUi && LevelManager.LevelInited && next != null && next.Health != null && !next.Health.IsDead
                 && level != null && level.ControllingCharacter == next && level.GameCamera != null;
-            if (player != null && (next != player || !takeOver)) Restore();
-            if (takeOver && player == null) TakeOver(next, level);
+            if (takenOver && (player == null || next != player || !takeOver)) Restore();
+            if (takeOver && !takenOver) TakeOver(next, level);
             if (player != null)
             {
                 foreach (var entry in behaviours) if (entry.Key != null) entry.Key.enabled = false;
@@ -102,9 +109,9 @@ namespace DuckovCraft.Game
             int width = settings.OverlayWidth;
             int height = Mathf.Clamp(Mathf.RoundToInt(width * (float)Screen.height / Math.Max(1, Screen.width)), 360, 2160);
             bool actionLocked = Active && player.CurrentAction != null && !player.CurrentAction.CanMove();
-            input.Update(Active && !actionLocked, ScreenOpen, width, height);
+            input.Update(Active && collisionReady && !actionLocked, ScreenOpen, width, height);
             uint seq = link.BeginWrite(Protocol.Sky);
-            link.Put(Protocol.Sky + 4, Active ? Protocol.InGame | (actionLocked ? Protocol.MenuOpen : 0) : Protocol.MenuOpen | (loading ? Protocol.Loading : 0));
+            link.Put(Protocol.Sky + 4, Active && collisionReady ? Protocol.InGame | (actionLocked ? Protocol.MenuOpen : 0) : Protocol.MenuOpen | (loading ? Protocol.Loading : 0));
             link.Put(Protocol.Sky + 8, world.WorldId); link.Put(Protocol.Sky + 12, world.Epoch);
             link.PutDouble(Protocol.Sky + 16, teleportPosition.x); link.PutDouble(Protocol.Sky + 24, teleportPosition.y); link.PutDouble(Protocol.Sky + 32, teleportPosition.z);
             link.PutFloat(Protocol.Sky + 40, yaw); link.PutFloat(Protocol.Sky + 44, pitch); link.Put(Protocol.Sky + 48, teleportSequence);
@@ -113,9 +120,10 @@ namespace DuckovCraft.Game
         }
         private void TakeOver(CharacterMainControl next, LevelManager level)
         {
+            takenOver = true; collisionReady = false;
             player = next; world.Select(); motor = player.GetComponent<ECM2.CharacterMovement>();
             if (motor == null) throw new InvalidOperationException("Duckov player has no ECM2 CharacterMovement.");
-            rootFromFeet = new Vector3(0, player.transform.position.y - motor.collider.bounds.min.y, 0);
+            rootFromFeet = player.transform.position - motor.GetFootPosition();
             body = motor.rigidbody;
             if (body != null)
             {
@@ -123,7 +131,8 @@ namespace DuckovCraft.Game
                 if (!kinematic) body.linearVelocity = Vector3.zero;
                 body.isKinematic = true; body.useGravity = false; body.interpolation = RigidbodyInterpolation.None;
             }
-            camera = level.GameCamera.renderCamera;
+            nativeCamera = level.GameCamera; camera = nativeCamera.renderCamera;
+            nativeAimOffset = player.GetCurrentAimPoint() - player.transform.position;
             cameraPosition = camera.transform.position; cameraRotation = camera.transform.rotation;
             fov = camera.fieldOfView; nearClip = camera.nearClipPlane; camera.nearClipPlane = settings.NearClip;
             cursorLock = Cursor.lockState; cursorVisible = Cursor.visible;
@@ -149,15 +158,27 @@ namespace DuckovCraft.Game
             if (value == null || behaviours.ContainsKey(value)) return;
             behaviours[value] = value.enabled; value.enabled = false;
         }
+        public void SetCollisionReady(bool ready)
+        {
+            if (collisionReady && !ready && Active)
+            {
+                teleportPosition = world.ToMc(Feet); teleportSequence++;
+            }
+            collisionReady = ready;
+        }
         public void LateUpdate()
         {
             if (player == null || camera == null) return;
             Vector3 eyePosition = Feet + Vector3.up * (1.62f * world.Units);
             float bobPhase = mc.BobPhase, bobAmount = mc.BobAmount;
-            if ((mc.Flags & Protocol.McInWorld) != 0 && mc.TeleportAck == teleportSequence && Finite(mc.CurX) && Finite(mc.CurY) && Finite(mc.CurZ))
+            if (collisionReady && (mc.Flags & Protocol.McInWorld) != 0 && mc.TeleportAck == teleportSequence && Finite(mc.CurX) && Finite(mc.CurY) && Finite(mc.CurZ))
             {
                 MotionPose pose = motion.Sample(mc, Stopwatch.GetTimestamp());
                 Vector3 feet = world.FromMc(pose.X, pose.Y, pose.Z);
+                if (GroundCrossingGuard.TryCatch(Feet, feet, CollisionMask, world.Units, out Vector3 landed))
+                {
+                    feet = landed; teleportPosition = world.ToMc(feet); teleportSequence++; GroundRecoveries++;
+                }
                 Vector3 position = feet + rootFromFeet;
                 if (body != null) body.position = position;
                 player.transform.position = position;
@@ -190,10 +211,15 @@ namespace DuckovCraft.Game
         private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
         private void Restore()
         {
-            if (player == null && behaviours.Count == 0) return;
+            if (!takenOver) return;
+            takenOver = false; collisionReady = false;
             link.Input(Protocol.ReleaseAll); HUDManager.UnregisterHideToken(owner);
             if (motor != null) motor.velocity = Vector3.zero;
-            if (player != null) player.movementControl.MovementEnabled = movementEnabled;
+            if (player != null)
+            {
+                player.movementControl.MovementEnabled = movementEnabled;
+                player.SetAimPoint(player.transform.position + nativeAimOffset);
+            }
             if (motor != null) motor.collider.enabled = colliderEnabled;
             foreach (var entry in behaviours) if (entry.Key != null) entry.Key.enabled = entry.Value;
             behaviours.Clear();
@@ -205,8 +231,16 @@ namespace DuckovCraft.Game
                 camera.transform.SetPositionAndRotation(cameraPosition, cameraRotation);
                 camera.fieldOfView = fov; camera.nearClipPlane = nearClip;
             }
+            if (nativeCamera != null && nativeCamera.target != null)
+            {
+                if (nativeCamera.mainCamDepthPoint != null) nativeCamera.mainCamDepthPoint.position = nativeCamera.target.GetCurrentAimPoint();
+                nativeCamera.ForceSyncPos();
+                if (nativeCamera.mainVCam != null) nativeCamera.mainVCam.PreviousStateIsValid = false;
+                if (nativeCamera.brain != null && nativeCamera.brain.enabled) nativeCamera.brain.ManualUpdate();
+                nativeCamera.ForceSyncPos();
+            }
             Cursor.lockState = cursorLock; Cursor.visible = cursorVisible;
-            player = null; motor = null; body = null; camera = null; cameraReady = false;
+            player = null; motor = null; body = null; camera = null; nativeCamera = null; cameraReady = false;
         }
         public void Dispose() { Restore(); input.Dispose(); }
     }
