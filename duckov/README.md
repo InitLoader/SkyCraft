@@ -8,6 +8,8 @@ DuckovCraft 将原版 Minecraft 客户端的移动、手部、背包、物品、
 
 ## 安装和启动
 
+只安装两端 Mod、使用自己的 Minecraft 启动器时，请阅读 [0.1.3 双端 Mod 包安装教程](MODS-INSTALL.zh-CN.md)。该精简包只包含官方 Mod、配套 MC 桥接/Fabric API 和文档，不含游戏、Java、启动器或个人存档。
+
 将包内所有内容解压到 `Duckov.exe` 所在目录。双击 `启动鸭科夫MC.bat`，启动器通过 Steam 启动 Duckov，并运行内置 Java 25 和 Minecraft。第一次请在 Duckov 主菜单的 Mods 页面允许加载 Mod，并启用 **DuckovCraft - Minecraft**，然后进入存档。启动器不修改原有 Mod、账户信息或 Duckov 存档。
 
 官方 Mod 目录为 `Duckov_Data/Mods/DuckovCraft`。它包含 `DuckovCraft.dll`、`info.ini` 和 `duckovcraft-assets`。设置首次生成到该目录的 `settings.json`；区域映射保存为 `worlds.tsv`。
