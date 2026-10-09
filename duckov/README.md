@@ -1,5 +1,7 @@
 # DuckovCraft (experimental)
 
+2026-10-09 验证状态：0.1.4 启动时出现黑屏和 D3D11 设备失效，盾牌测试没有通过。当前本机已回退到 0.1.3，用户确认 MC 视角恢复且没有再次黑屏。不要将 0.1.4 的构建成功视为可用性验证；失败原因仍在定位，详见 [启动失败与回退记录](VALIDATION.md)。
+
 DuckovCraft 将原版 Minecraft 客户端的移动、手部、背包、物品、方块、近战和 F5 第三人称角色接入《逃离鸭科夫》。Duckov 端由官方 `Duckov.Modding.ModManager` 加载 `DuckovCraft.ModBehaviour`，不依赖 BepInEx 或 Harmony。
 
 基于本机 Duckov Unity 6000.3.23f1 的真实程序集构建。Minecraft 使用既有的 26.3 / Fabric 0.19.5 桥接客户端，Fabric 仅用于 Minecraft 端。它沿用 SulfurCraft 的客户端兼容配置，通过 `-Dskycraft.link=Local\DuckovCraft_v1` 连接独立映射；其世界内部目录名仍为 `SulfurCraft`，存放在 DuckovCraft 自己的目录内。
