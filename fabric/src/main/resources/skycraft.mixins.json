@@ -19,7 +19,8 @@
     "ProjectileUtilMixin",
     "ServerExplosionMixin",
     "ServerPlayerMixin",
-    "SmithingMixin"
+    "SmithingMixin",
+    "SulfurLadderMixin"
   ],
   "injectors": { "defaultRequire": 1 }
 }

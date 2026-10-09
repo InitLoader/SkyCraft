@@ -54,6 +54,13 @@ public final class SkyClient {
 		return linked;
 	}
 
+	public static void sulfurMovement(Vec3 movement, float width, float height) {
+		mc.sulfurMoveX = (float) movement.x;
+		mc.sulfurMoveZ = (float) movement.z;
+		mc.sulfurBodyWidth = width;
+		mc.sulfurBodyHeight = height;
+	}
+
 	/**
 	 * True once Skyrim has connected in this session. From then on Minecraft never touches the
 	 * real mouse or keyboard again (even if Skyrim closes), since its window is hidden.
@@ -250,7 +257,10 @@ public final class SkyClient {
 		mc.walkDist = bob ? avatar.getInterpolatedWalkDistance(1.0F) : 0.0F;
 		mc.bobO = bob ? avatar.getInterpolatedBob(0.0F) : 0.0F;
 		mc.bob = bob ? avatar.getInterpolatedBob(1.0F) : 0.0F;
-		SkyLink.writeMcState(mc);
+		// SULFUR publishes a coherent tick + render phase together after rendering.
+		if (!dev.skycraft.HostProfile.SULFUR) {
+			SkyLink.writeMcState(mc);
+		}
 	}
 
 	/** Freeze the player until Skyrim's collision around them has arrived. */
@@ -323,6 +333,13 @@ public final class SkyClient {
 			});
 		}
 		SkyCraft.LOG.info("SkyCraft: teleported to {} {} {}", x, y, z);
+	}
+
+	public static void beforeRender() {
+		if (linked && dev.skycraft.HostProfile.SULFUR) {
+			mc.sulfurFrameQpc = SkyLink.qpc();
+			mc.sulfurFramePartial = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
+		}
 	}
 
 	/** After GameRenderer.render(): report the player to Skyrim and ship the overlay frame. */

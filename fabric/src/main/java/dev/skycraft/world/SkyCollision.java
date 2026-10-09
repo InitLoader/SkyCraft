@@ -246,6 +246,7 @@ public final class SkyCollision {
 				case COL_CLEAR -> clear(s.get(JAVA_INT, payload));
 				case COL_REGION -> readRegion(s, payload);
 				case COL_TRIS -> readTris(s, payload);
+				case COL_SULFUR_LADDERS -> SulfurLadders.read(s, payload, payloadBytes, epoch);
 				default -> SkyCraft.LOG.warn("SkyCraft: unknown collision message {}", type);
 			}
 			tail += align8(8 + payloadBytes);
@@ -267,6 +268,7 @@ public final class SkyCollision {
 	}
 
 	private static void clear(int newEpoch) {
+		SulfurLadders.clear();
 		SHAPES.clear();
 		FILL.clear();
 		TRIS.clear();

@@ -33,6 +33,10 @@ public final class DestructionToggle {
 	}
 
 	public static void register() {
+		if (dev.skycraft.HostProfile.SULFUR) {
+			SkyDig.destruction = false;
+			return;
+		}
 		load();
 		ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
 			if (screen instanceof PauseScreen pause && pause.showsPauseMenu() && minecraft.player != null) {
