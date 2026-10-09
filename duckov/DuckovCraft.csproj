@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>DuckovCraft</AssemblyName>
+    <Version>0.1.0</Version>
+    <DuckovDir Condition="'$(DuckovDir)' == ''">$(DUCKOV_GAME_DIR)</DuckovDir>
+    <GameManaged>$(DuckovDir)\Duckov_Data\Managed</GameManaged>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" />
+    <Reference Include="TeamSoda.Duckov.Core"><HintPath>$(GameManaged)\TeamSoda.Duckov.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TeamSoda.Duckov.Utilities"><HintPath>$(GameManaged)\TeamSoda.Duckov.Utilities.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ItemStatsSystem"><HintPath>$(GameManaged)\ItemStatsSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ECM2"><HintPath>$(GameManaged)\ECM2.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Cinemachine"><HintPath>$(GameManaged)\Cinemachine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UniTask"><HintPath>$(GameManaged)\UniTask.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AstarPathfindingProject"><HintPath>$(GameManaged)\AstarPathfindingProject.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="PackageTools"><HintPath>$(GameManaged)\PackageTools.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Drawing"><HintPath>$(GameManaged)\Drawing.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.InputSystem"><HintPath>$(GameManaged)\Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManaged)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="$(GameManaged)\UnityEngine.*Module.dll"><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UI"><HintPath>$(GameManaged)\UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
