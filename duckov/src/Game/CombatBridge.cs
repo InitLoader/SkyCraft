@@ -17,26 +17,23 @@ namespace DuckovCraft.Game
         private readonly Dictionary<uint, Health> actors = new Dictionary<uint, Health>();
         private readonly List<Health> sorted = new List<Health>();
         private readonly Collider[] nearby = new Collider[2048];
-        private readonly Func<float, float> processDamage;
+        private readonly IncomingDamageBridge incoming;
         private Health health;
-        private bool nativeDeath;
         private float nextActors;
         public int Hits { get; private set; }
         public int ActorCount => actors.Count;
+        public int IncomingHits => incoming.Forwarded;
+        public int DirectionalHits => incoming.Directional;
 
         public CombatBridge(SharedLink link, WorldMapping world, PlayerBridge player, BridgeSettings settings)
         {
             this.link = link; this.world = world; this.player = player; this.settings = settings;
-            processDamage = ProcessDamage;
+            incoming = new IncomingDamageBridge(link, player, settings);
         }
         public void Update()
         {
             Health next = player.Active ? player.Player.Health : null;
-            if (health != next)
-            {
-                Detach(); health = next;
-                if (health != null) health.finalDamageProcessFuncs.Add(processDamage);
-            }
+            incoming.Attach(next); health = next;
             if (Time.unscaledTime >= nextActors)
             {
                 nextActors = Time.unscaledTime + .1f; actors.Clear(); sorted.Clear();
@@ -76,23 +73,12 @@ namespace DuckovCraft.Game
             }
             link.DrainEvents(Receive);
         }
-        private float ProcessDamage(float damage)
-        {
-            if (nativeDeath || !player.Active || !link.Connected || damage <= 0) return damage;
-            int amount = Mathf.RoundToInt(Mathf.Clamp(damage * settings.IncomingDamageMultiplier * 500, 0, int.MaxValue));
-            return link.Input(Protocol.Hurt, 3, amount) ? 0 : damage;
-        }
         private void Receive(McEvent ev)
         {
             if (!player.Active) return;
             if (ev.Type == 2)
             {
-                nativeDeath = true;
-                try
-                {
-                    player.Player.Health.Hurt(new DamageInfo(player.Player) { damageType = DamageTypes.realDamage, damageValue = player.Player.Health.MaxHealth + 1, ignoreArmor = true, ignoreDifficulty = true });
-                }
-                finally { nativeDeath = false; }
+                incoming.ApplyNative(new DamageInfo(player.Player) { damageType = DamageTypes.realDamage, damageValue = player.Player.Health.MaxHealth + 1, ignoreArmor = true, ignoreDifficulty = true });
                 return;
             }
             if (ev.Type != 1 || ev.A <= 0 || float.IsNaN(ev.A) || float.IsInfinity(ev.A) || !actors.TryGetValue(ev.Id, out Health target) || target == null || target.IsDead) return;
@@ -105,11 +91,6 @@ namespace DuckovCraft.Game
             };
             target.Hurt(damage); Hits++;
         }
-        private void Detach()
-        {
-            if (health != null) health.finalDamageProcessFuncs.Remove(processDamage);
-            health = null;
-        }
-        public void Dispose() => Detach();
+        public void Dispose() => incoming.Dispose();
     }
 }

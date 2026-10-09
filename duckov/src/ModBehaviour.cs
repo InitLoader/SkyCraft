@@ -69,7 +69,7 @@ namespace DuckovCraft
                 {
                     nextDiagnostics = Time.unscaledTime + 5;
                     log.LogInfo($"active={player.Active}, linked={connected}, overlayFrames={overlay.Frames}, sections={world.Sections}, cracks={world.Cracks}, collisionRegions={collision.RegionsSent}, triangles={collision.TrianglesSent}, collisionReady={player.CollisionReady}, groundRecoveries={player.GroundRecoveries}, actors={combat.ActorCount}, hits={combat.Hits}, interactions={player.Interactions}, hiddenLasers={player.HiddenLasers}, disabledDepthOfField={player.DisabledDepthOfField}");
-                    log.LogInfo(BridgeDiagnostics.Describe(player));
+                    log.LogInfo(BridgeDiagnostics.Describe(player) + $", incomingHits={combat.IncomingHits}, directionalHits={combat.DirectionalHits}");
                 }
             }
             catch (Exception e) { Fail(e); }

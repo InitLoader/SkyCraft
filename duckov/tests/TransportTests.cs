@@ -66,6 +66,17 @@ internal static class TransportTests
             ulong head = host.U64(Protocol.Input);
             Check(!host.Input(Protocol.Hurt, 3, 500) && host.U64(Protocol.Input) == head, "Full input ring reports failure without overwriting pending damage");
         }
+        using (var host = new SharedLink(name + "_damage"))
+        using (var mapping = MemoryMappedFile.OpenExisting(name + "_damage"))
+        using (var client = mapping.CreateViewAccessor())
+        {
+            Check(host.Input(Protocol.Hurt, Protocol.HurtMelee, 1500, -42), "Directional melee damage accepted");
+            Check(client.ReadUInt16(Protocol.Input + 130) == 0 && client.ReadInt32(Protocol.Input + 132) == 1500
+                && client.ReadInt32(Protocol.Input + 136) == -42, "Melee packet preserves amount and signed actor identity");
+            Check(host.Input(Protocol.Hurt, Protocol.HurtProjectile, 2500, 27), "Directional projectile damage accepted");
+            Check(client.ReadUInt16(Protocol.Input + 146) == 1 && client.ReadInt32(Protocol.Input + 148) == 2500
+                && client.ReadInt32(Protocol.Input + 152) == 27, "Projectile packet preserves its source rather than using generic damage");
+        }
         Check(!CollisionCoverage.Ready(4, 128, 4, .6, 1.8, (x, y, z) => false), "Unsent collision cannot permit movement");
         Check(CollisionCoverage.Ready(4, 128, 4, .6, 1.8, (x, y, z) => x == 0 && (y == 15 || y == 16) && z == 0), "Interior feet require ground and body regions");
         Check(!CollisionCoverage.Ready(7, 128, 4, .6, 1.8, (x, y, z) => x == 0), "Approaching a boundary waits for the next region");

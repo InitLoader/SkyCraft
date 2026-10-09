@@ -15,6 +15,7 @@ namespace DuckovCraft.Link
         public const uint InGame = 1, MenuOpen = 2, Loading = 4;
         public const uint McInWorld = 1, McScreenOpen = 2, McDead = 32;
         public const ushort Key = 1, MouseButton = 2, Scroll = 3, Cursor = 4, Text = 5, ReleaseAll = 6, Hurt = 7, OpenMenu = 8;
+        public const ushort HurtMelee = 0, HurtProjectile = 1, HurtOther = 3;
         public const uint CollisionLadders = 4;
     }
 

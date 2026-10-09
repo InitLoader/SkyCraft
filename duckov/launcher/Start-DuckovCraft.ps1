@@ -76,7 +76,7 @@ try {
         '-Xms512M', "-Xmx$($settings.maxMemoryMiB)M", '-XX:+UseZGC', '-XX:+UseCompactObjectHeaders',
         '-XX:StackShadowPages=32', '--enable-native-access=ALL-UNNAMED', '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED',
         '-Djava.library.path=natives\java', '-Djna.tmpdir=natives\jna', '-Dorg.lwjgl.system.SharedLibraryExtractPath=natives\lwjgl',
-        '-Dio.netty.native.workdir=natives\netty', '-Dminecraft.launcher.brand=DuckovCraft', '-Dminecraft.launcher.version=0.1.3',
+        '-Dio.netty.native.workdir=natives\netty', '-Dminecraft.launcher.brand=DuckovCraft', '-Dminecraft.launcher.version=0.1.4',
         '-Dskycraft.host=sulfur', '-Dskycraft.link=Local\DuckovCraft_v1', '-Dskycraft.startHidden=true', '-Dskycraft.quitWithSkyrim=true', '-Dskycraft.discordAppId=0',
         '-cp', (($client.libraryPaths + 'client.jar') -join ';'), $client.mainClass,
         '--username', $settings.playerName, '--uuid', $uuid, '--accessToken', '0', '--version', $client.version,
