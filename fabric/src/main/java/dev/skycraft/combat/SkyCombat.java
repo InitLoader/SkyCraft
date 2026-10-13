@@ -191,7 +191,7 @@ public final class SkyCombat {
 		}
 		ServerLevel level = player.level();
 		SkyrimActorEntity attacker = PROXIES.get(attackerFormId);
-		if (attacker != null && attacker.distanceToSqr(player) > 24.0 * 24.0) {
+		if (attacker != null && attacker.distanceToSqr(player) > 24.0 * 24.0 && !dev.skycraft.net.SkyNet.isHost(player)) {
 			attacker = null; // a guest's own NPC with the same form id as one of the host's
 		}
 		DamageSources sources = level.damageSources();
@@ -206,8 +206,8 @@ public final class SkyCombat {
 		boolean blocking = player.isBlocking();
 		boolean hurt = player.hurtServer(level, source, damage);
 		trainDefence(player, damage, blocking && player.getHealth() >= healthBefore - 1.0E-3F);
-		SkyCraft.LOG.info("SkyCraft: Skyrim hit the player for {} ({} Minecraft): health {} -> {}{}", skyrimDamage, damage, healthBefore, player.getHealth(),
-			hurt ? "" : " (blocked/immune)");
+		SkyCraft.LOG.info("SkyCraft: Skyrim hit the player for {} ({} Minecraft): health {} -> {}{}, kind={}, attacker={}, blocking={}, mode={}", skyrimDamage, damage, healthBefore, player.getHealth(),
+			hurt ? "" : " (blocked/immune)", kind, attackerFormId, blocking, player.gameMode.getGameModeForPlayer());
 		if (hurt && attacker != null && (flags & Proto.HURT_POWER_ATTACK) != 0 && !player.isBlocking()) {
 			// Power attacks shove harder, like a sprint hit does in Minecraft.
 			player.knockback(0.5, attacker.getX() - player.getX(), attacker.getZ() - player.getZ(), source, damage);

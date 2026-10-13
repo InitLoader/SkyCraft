@@ -19,6 +19,7 @@
     "RenderTypeAccessor",
     "ScreenMixin",
     "SpriteContentsAccessor",
+    "SulfurMovementMixin",
     "TextureAtlasAccessor",
     "TextureBindingAccessor",
     "TextureManagerAccessor",
