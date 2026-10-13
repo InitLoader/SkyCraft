@@ -1,5 +1,6 @@
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
+from copy import copy
 import argparse
 import hashlib
 import json
@@ -8,6 +9,28 @@ import shutil
 
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
+
+
+def brand_client(source, target):
+    with ZipFile(source) as original:
+        assert original.testzip() is None
+        metadata = json.loads(original.read('fabric.mod.json'))
+        metadata['name'] = 'DuckCraft'
+        metadata['version'] = metadata['version'].replace('-sulfur.', '-duck.')
+        metadata['description'] = 'Connect Minecraft movement, inventory, blocks and viewmodels to Escape from Duckov.'
+        with ZipFile(target, 'w', ZIP_DEFLATED) as branded:
+            for entry in original.infolist():
+                data = original.read(entry.filename)
+                if entry.filename == 'fabric.mod.json':
+                    data = (json.dumps(metadata, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+                branded.writestr(copy(entry), data)
+        with ZipFile(target) as branded:
+            assert branded.testzip() is None
+            assert branded.namelist() == original.namelist()
+            assert json.loads(branded.read('fabric.mod.json')) == metadata
+            for name in original.namelist():
+                if name != 'fabric.mod.json':
+                    assert branded.read(name) == original.read(name)
 
 
 parser = argparse.ArgumentParser(description='Package the verified DuckovCraft 0.1.3 pair without games, runtimes or saves.')
@@ -33,9 +56,9 @@ with ZipFile(api) as jar:
 
 args.stage_dir.mkdir(parents=True, exist_ok=False)
 files = {
-    'Minecraft端/mods/sulfurcraft.jar': mc / 'sulfurcraft.jar',
+    'Minecraft端/mods/duckcraft.jar': mc / 'sulfurcraft.jar',
     'Minecraft端/mods/fabric-api-0.162.0+26.3.jar': api,
-    '安装教程.md': repo / 'duckov/MODS-INSTALL.zh-CN.md',
+    '安装教程.txt': repo / 'duckov/MODS-INSTALL.zh-CN.md',
     '许可证/SkyCraft-MIT.txt': repo / 'LICENSE',
 }
 for name in ('DuckovCraft.dll', 'info.ini', 'duckovcraft-assets'):
@@ -43,8 +66,11 @@ for name in ('DuckovCraft.dll', 'info.ini', 'duckovcraft-assets'):
 for relative, source in files.items():
     target = args.stage_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
-    assert sha256(target) == sha256(source)
+    if relative == 'Minecraft端/mods/duckcraft.jar':
+        brand_client(source, target)
+    else:
+        shutil.copy2(source, target)
+        assert sha256(target) == sha256(source)
 (args.stage_dir / '许可证/Fabric-API-Apache-2.0.txt').write_bytes(api_license)
 payload = sorted(p for p in args.stage_dir.rglob('*') if p.is_file())
 checksums = ''.join(f'{sha256(p)}  {p.relative_to(args.stage_dir).as_posix()}\n' for p in payload)
