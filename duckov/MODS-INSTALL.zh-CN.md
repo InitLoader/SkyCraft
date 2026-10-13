@@ -1,4 +1,4 @@
-DuckCraft 安装教程
+DuckovCraft 安装教程
 
 需要：Minecraft 26.3、Fabric Loader 0.19.5、Java 25，以及 Fabric API 0.162.0+26.3。
 
@@ -6,13 +6,13 @@ DuckCraft 安装教程
 
 2. 在 Duckov.exe 所在目录中找到 Duckov_Data\Mods，创建 DuckovCraft 文件夹。把本包的 DuckovCraft.dll、info.ini、duckovcraft-assets 三个文件一起放进去。
 
-3. 把 Minecraft端\mods 中的 duckcraft.jar 放进你的 Minecraft 实例的 mods 文件夹。Fabric API 也放在这里；本包没有附带时，请自行安装上面指定的版本。移出旧的桥接 JAR，避免重复加载。
+3. 把 Minecraft端\mods 中的 DuckovCraft.jar 放进你的 Minecraft 实例的 mods 文件夹。Fabric API 也放在这里；本包没有附带时，请自行安装上面指定的版本。移出旧的桥接 JAR，避免重复加载。
 
-4. 在 Minecraft 启动器的“JVM 参数 / Java 虚拟机参数”中添加下面这一整行：
+4. 在 Minecraft 启动器的“JVM 参数 / Java 虚拟机参数”中添加下面这一行：
 
---enable-native-access=ALL-UNNAMED --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED -Dskycraft.host=sulfur -Dskycraft.link=Local\DuckovCraft_v1 -Dskycraft.startHidden=false -Dskycraft.quitWithSkyrim=true -Dskycraft.discordAppId=0
+--enable-native-access=ALL-UNNAMED --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
 
-参数里的 sulfur 是程序兼容模式名称，请原样复制。MC Mod 显示名称和文件名已改成 DuckCraft、duckcraft.jar。
+鸭科夫连接设置已内置，无需再添加桥接参数。
 
 5. 启动鸭科夫，在主菜单的 Mods 页面允许加载 Mod，并勾选 DuckovCraft - Minecraft。
 

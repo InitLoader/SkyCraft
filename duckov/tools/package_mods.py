@@ -5,28 +5,40 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
+import tempfile
 
 
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
 
-def brand_client(source, target):
+def brand_client(source, target, java_home, loader):
+    entrypoint = 'dev.duckovcraft.DuckovCraftProfile'
+    class_name = entrypoint.replace('.', '/') + '.class'
+    with tempfile.TemporaryDirectory() as classes:
+        subprocess.run([str(java_home / 'bin/javac.exe'), '--release', '25', '-cp', str(loader), '-d', classes,
+                        str(repo / 'duckov/client/DuckovCraftProfile.java')], check=True)
+        profile = (Path(classes) / class_name).read_bytes()
     with ZipFile(source) as original:
         assert original.testzip() is None
         metadata = json.loads(original.read('fabric.mod.json'))
-        metadata['name'] = 'DuckCraft'
-        metadata['version'] = metadata['version'].replace('-sulfur.', '-duck.')
+        metadata['id'] = 'duckovcraft'
+        metadata['name'] = 'DuckovCraft'
+        metadata['version'] = metadata['version'].replace('-sulfur.', '-duckov.')
         metadata['description'] = 'Connect Minecraft movement, inventory, blocks and viewmodels to Escape from Duckov.'
+        metadata['entrypoints']['preLaunch'] = [entrypoint]
         with ZipFile(target, 'w', ZIP_DEFLATED) as branded:
             for entry in original.infolist():
                 data = original.read(entry.filename)
                 if entry.filename == 'fabric.mod.json':
                     data = (json.dumps(metadata, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
                 branded.writestr(copy(entry), data)
+            branded.writestr(class_name, profile)
         with ZipFile(target) as branded:
             assert branded.testzip() is None
-            assert branded.namelist() == original.namelist()
+            assert branded.namelist() == original.namelist() + [class_name]
+            assert branded.read(class_name) == profile
             assert json.loads(branded.read('fabric.mod.json')) == metadata
             for name in original.namelist():
                 if name != 'fabric.mod.json':
@@ -37,10 +49,13 @@ parser = argparse.ArgumentParser(description='Package the verified DuckovCraft 0
 parser.add_argument('--game-root', type=Path, required=True)
 parser.add_argument('--stage-dir', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--java-home', type=Path, help='Java 25 JDK; defaults to the installed DuckovCraft runtime.')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 mod = args.game_root / 'Duckov_Data/Mods/DuckovCraft'
 mc = args.game_root / 'DuckovCraft/minecraft/mods'
+java_home = args.java_home or args.game_root / 'DuckovCraft/runtime'
+loader = args.game_root / 'DuckovCraft/minecraft/libraries/net/fabricmc/fabric-loader/0.19.5/fabric-loader-0.19.5.jar'
 assert 'version = 0.1.3' in (mod / 'info.ini').read_text(encoding='utf-8')
 with ZipFile(mc / 'sulfurcraft.jar') as jar:
     metadata = json.loads(jar.read('fabric.mod.json'))
@@ -56,18 +71,18 @@ with ZipFile(api) as jar:
 
 args.stage_dir.mkdir(parents=True, exist_ok=False)
 files = {
-    'Minecraft端/mods/duckcraft.jar': mc / 'sulfurcraft.jar',
+    'Minecraft端/mods/DuckovCraft.jar': mc / 'sulfurcraft.jar',
     'Minecraft端/mods/fabric-api-0.162.0+26.3.jar': api,
     '安装教程.txt': repo / 'duckov/MODS-INSTALL.zh-CN.md',
-    '许可证/SkyCraft-MIT.txt': repo / 'LICENSE',
+    '许可证/DuckovCraft-MIT.txt': repo / 'LICENSE',
 }
 for name in ('DuckovCraft.dll', 'info.ini', 'duckovcraft-assets'):
     files[f'鸭科夫端/Duckov_Data/Mods/DuckovCraft/{name}'] = mod / name
 for relative, source in files.items():
     target = args.stage_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
-    if relative == 'Minecraft端/mods/duckcraft.jar':
-        brand_client(source, target)
+    if relative == 'Minecraft端/mods/DuckovCraft.jar':
+        brand_client(source, target, java_home, loader)
     else:
         shutil.copy2(source, target)
         assert sha256(target) == sha256(source)
