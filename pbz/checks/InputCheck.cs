@@ -5,6 +5,13 @@ internal static class InputCheck
 {
     public static void Run()
     {
+        var packet=new byte[8+IntPtr.Size*2+24];int header=8+IntPtr.Size*2;
+        BitConverter.GetBytes((ushort)0x400).CopyTo(packet,header+4);BitConverter.GetBytes((short)-120).CopyTo(packet,header+6);
+        BitConverter.GetBytes(17).CopyTo(packet,header+12);BitConverter.GetBytes(-9).CopyTo(packet,header+16);
+        if(WindowInput.DecodeMouse(packet) is not {X:17,Y:-9,Wheel:-120})throw new InvalidOperationException("Raw mouse packet layout is incorrect.");
+        packet[header]=1;if(WindowInput.DecodeMouse(packet) is not null)throw new InvalidOperationException("Absolute mouse packet was treated as relative movement.");
+        var unfocused=new double[229];using(var windowInput=new WindowInput())windowInput.Read(unfocused);
+        if(unfocused[218]!=0 || unfocused[219]!=0 || unfocused[220]!=0)throw new InvalidOperationException("Inactive input captured another window.");
         using var link=new SharedLink("Local\\PBZCraft.InputCheck-"+Guid.NewGuid().ToString("N"));
         var relay=new NativeInputRelay();
         var pose=new double[229];pose[218]=(1u<<0)|(1u<<23);pose[219]=10;pose[220]=-5;pose[224]=1;pose[225]=2560;pose[226]=1440;

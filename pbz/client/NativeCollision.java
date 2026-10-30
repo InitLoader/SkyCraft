@@ -62,7 +62,7 @@ public final class NativeCollision {
         if(shared.get(JAVA_INT,128)!=1) {rejected++;return Vec3.ZERO;}
         var resolved=new Vec3(shared.get(JAVA_DOUBLE,104),shared.get(JAVA_DOUBLE,112),shared.get(JAVA_DOUBLE,120));
         if(movement.y>0.01)System.out.printf("[PBZCollision] jump requested=%.6f resolved=%.6f atY=%.6f%n",movement.y,resolved.y,player.getY());
-        if(!Double.isFinite(resolved.x) || !Double.isFinite(resolved.y) || !Double.isFinite(resolved.z) || resolved.lengthSqr()>4) {
+        if(!Double.isFinite(resolved.x) || !Double.isFinite(resolved.y) || !Double.isFinite(resolved.z) || resolved.lengthSqr()>64) {
             rejected++;return Vec3.ZERO;
         }
         return resolved;

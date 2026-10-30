@@ -82,7 +82,7 @@ internal sealed class RenderCapture
     }
     public void Flush(long now)
     {
-        if(now<nextFlush) return;nextFlush=now+100;
+        if(now<nextFlush) return;nextFlush=now+16;
         foreach(var item in pending.ToArray())Atomic(item.Key,item.Value);
         if(dirty && atlas is not null && initialMissing==0 && now>=nextAtlasFlush && atlasWrites<2) {SavePng("atlas.png",width,height,atlas,0);dirty=false;nextAtlasFlush=now+5000;atlasWrites++;}
         if(avatar is not null) {Atomic("avatar.bin",avatar);avatar=null;AvatarUpdates++;}

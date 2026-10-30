@@ -9,6 +9,7 @@ internal sealed class NativeInputRelay
     private uint previousMask;
     public bool Initialized {get;private set;}
     public bool ExitRequested {get;private set;}
+    private static void Send(SharedLink link,ushort type,ushort code=0,int a=0,int b=0)=>link.Input(type,code,a,b,unchecked((int)SharedLink.Now));
 
     public void Step(SharedLink link,double[] pose,McState mc,int width,int height,ref double yaw,ref double pitch)
     {
@@ -19,15 +20,15 @@ internal sealed class NativeInputRelay
         uint mask=(uint)pose[218],changed=mask^previousMask;
         if((changed&mask&(1u<<26))!=0)ExitRequested=true;
         for(int index=0;index<Keys.Length;index++)
-            if((changed&(1u<<index))!=0)link.Input(Protocol.Key,Keys[index],(mask&(1u<<index))!=0?1:0);
+            if((changed&(1u<<index))!=0)Send(link,Protocol.Key,Keys[index],(mask&(1u<<index))!=0?1:0);
         ushort[] buttons=[1,3,2];
         for(int index=0;index<buttons.Length;index++)
-            if((changed&(1u<<(23+index)))!=0)link.Input(Protocol.MouseButton,buttons[index],(mask&(1u<<(23+index)))!=0?1:0);
+            if((changed&(1u<<(23+index)))!=0)Send(link,Protocol.MouseButton,buttons[index],(mask&(1u<<(23+index)))!=0?1:0);
         if((mc.Flags&Protocol.McScreenOpen)!=0)
         {
             int x=(int)Math.Round(pose[221]*width/Math.Max(1,pose[225]));
             int y=(int)Math.Round(pose[222]*height/Math.Max(1,pose[226]));
-            link.Input(Protocol.Cursor,0,x,y);
+            Send(link,Protocol.Cursor,0,x,y);
         }
         else
         {
@@ -35,7 +36,7 @@ internal sealed class NativeInputRelay
             yaw=(yaw+pose[219]*sensitivity)%360;
             pitch=Math.Clamp(pitch-pose[220]*sensitivity,-89.9,89.9);
         }
-        if(pose[223]!=0)link.Input(Protocol.Scroll,0,Math.Sign(pose[223])*120);
+        if(pose[223]!=0)Send(link,Protocol.Scroll,0,Math.Sign(pose[223])*120);
         previousMask=mask;
     }
 }

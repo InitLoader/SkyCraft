@@ -19,8 +19,9 @@ function New-PBZCraftMinecraftArgs([string]$Root,[string]$Bundle) {
             }
         } finally {$archive.Dispose()}
     }
-    $classpath=(@($libraries)+(Join-Path $Bundle 'minecraft/client.jar')) -join ';'
-    $arguments=@('-XX:+UseCompactObjectHeaders','-XX:StackShadowPages=32',('-XX:ErrorFile='+$Root+'/logs/jvm-%p.log'),'-Xms512M','-Xmx3072M','-XX:+UseZGC','--enable-native-access=ALL-UNNAMED','--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED',('-Djava.library.path='+$client+'/natives/java'),('-Dorg.lwjgl.system.SharedLibraryExtractPath='+$client+'/natives/lwjgl'),'-Dskycraft.host=sulfur','-Dskycraft.link=Local\PBZCraft_v1','-Dskycraft.startHidden=true','-Dskycraft.quitWithSkyrim=true','-Dskycraft.discordAppId=0','-cp',$classpath,$metadata.mainClass,'--username','Steve','--uuid','5627dd98-e6be-3c21-b8a8-e92344183641','--accessToken','0','--version','26.3-PBZCraft','--gameDir',$client,'--assetsDir',(Join-Path $Bundle 'minecraft/assets'),'--assetIndex',[string]$metadata.assetIndex)
+    $classpath=(@($libraries)+(Join-Path $Bundle 'minecraft/client.jar') | ForEach-Object {[IO.Path]::GetRelativePath($client,$_ )}) -join ';'
+    $assets=[IO.Path]::GetRelativePath($client,(Join-Path $Bundle 'minecraft/assets'))
+    $arguments=@('-XX:+UseCompactObjectHeaders','-XX:StackShadowPages=32','-XX:ErrorFile=../logs/jvm-%p.log','-Xms512M','-Xmx3072M','-XX:+UseZGC','--enable-native-access=ALL-UNNAMED','--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED','-Djava.library.path=natives/java','-Dorg.lwjgl.system.SharedLibraryExtractPath=natives/lwjgl','-Dskycraft.host=sulfur','-Dskycraft.link=Local\PBZCraft_v1','-Dskycraft.startHidden=true','-Dskycraft.quitWithSkyrim=true','-Dskycraft.discordAppId=0','-cp',$classpath,$metadata.mainClass,'--username','Steve','--uuid','5627dd98-e6be-3c21-b8a8-e92344183641','--accessToken','0','--version','26.3-PBZCraft','--gameDir','.','--assetsDir',$assets,'--assetIndex',[string]$metadata.assetIndex)
     $arguments+=@('--versionType','release','--width','1280','--height','720')
     $lines=@($arguments | ForEach-Object {'"'+$_.Replace('\','\\').Replace('"','\"')+'"'})
     $argsFile=Join-Path $Root 'minecraft.args'

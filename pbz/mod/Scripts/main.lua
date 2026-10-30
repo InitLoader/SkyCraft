@@ -13,7 +13,7 @@ local lastState=""
 local handle=nil
 print("[PBZProbe] Single game-thread loop bridge trial loaded.\n")
 handle=LoopInGameThreadWithDelay(16,function()
-    if os.time()>=deadline or os.time()-started>duration or failures>=3 then
+    if os.time()>=deadline or (duration>0 and os.time()-started>duration) or failures>=3 then
         if controller and controller:IsValid() then pcall(View.restore,controller,controller.Pawn) end
         CancelDelayedAction(handle)
         return

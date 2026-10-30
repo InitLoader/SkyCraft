@@ -1,5 +1,6 @@
 local Collision={}
 local Origin=require("PBZOrigin")
+local Movement=require("PBZMovement")
 local original=nil
 local radius,half=nil,nil
 local requests,blocked,rejected=0,0,0
@@ -41,11 +42,12 @@ function Collision.step(pawn)
     local data=PBZNative_CollisionPoll(1)
     if not data then return end
     local x,y,z,dx,dy,dz,width,height=string.unpack("<dddddddd",data)
-    if x~=x or y~=y or z~=z or dx~=dx or dy~=dy or dz~=dz or width<0.2 or width>2 or height<0.2 or height>3
-        or x*x+z*z>9 or math.abs(y-128)>2 or dx*dx+dy*dy+dz*dz>1 then
+    if x~=x or y~=y or z~=z or dx~=dx or dy~=dy or dz~=dz or not (width>=0.2 and width<=2 and height>=0.2 and height<=3)
+        or x*x+z*z==math.huge or math.abs(y-128)==math.huge or dx*dx+dy*dy+dz*dz>64 then
         rejected=rejected+1;PBZNative_CollisionRespond(0,0,0,2);return
     end
     if not original then
+        Movement.claim(pawn)
         local point=pawn:K2_GetActorLocation()
         original={X=point.X,Y=point.Y,Z=point.Z}
         radius=pawn.CapsuleComponent:GetScaledCapsuleRadius()
@@ -63,7 +65,8 @@ function Collision.step(pawn)
     local start={X=origin.X+z*100,Y=origin.Y-x*100,Z=origin.Z+(y-128)*100+targetHalf}
     local current=pawn:K2_GetActorLocation()
     if distance(current,start)>0.05 then
-        pawn:K2_SetActorLocation(start,true,{},false)
+        -- MC may discard a speculative step-up query. Reset the query body, then sweep only the requested movement.
+        pawn:K2_SetActorLocation(start,false,{},true)
         if distance(pawn:K2_GetActorLocation(),start)>2 then
             rejected=rejected+1;PBZNative_CollisionRespond(0,0,0,3);return
         end
@@ -90,5 +93,6 @@ function Collision.restore(pawn)
         print(string.format("[PBZProbe] Collision trial restored native capsule/start: requests=%d blocked=%d rejected=%d maxTravel=%.3fcm maxHeight=%.3fcm\n",requests,blocked,rejected,maximum,highest))
     end
     original=nil
+    Movement.restore()
 end
 return Collision

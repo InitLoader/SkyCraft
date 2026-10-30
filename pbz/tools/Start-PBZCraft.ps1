@@ -1,4 +1,4 @@
-param([string]$Root=(Split-Path $PSScriptRoot -Parent),[switch]$Demo,[ValidateRange(90,900)][int]$Seconds=300,[DateTimeOffset]$Deadline=[DateTimeOffset]::MaxValue)
+param([string]$Root=(Split-Path $PSScriptRoot -Parent),[switch]$Demo,[ValidateScript({$_ -eq 0 -or ($_ -ge 90 -and $_ -le 86400)})][int]$Seconds=0,[DateTimeOffset]$Deadline=[DateTimeOffset]::MaxValue)
 $runLock=[Threading.Mutex]::new($false,'Local\PBZCraft.PreviewLauncher')
 $lockOwned=$false
 try {
@@ -6,6 +6,7 @@ try {$lockOwned=$runLock.WaitOne(0)} catch [Threading.AbandonedMutexException] {
 if(!$lockOwned){throw 'A previous preview is still running or cleaning up.'}
 $ErrorActionPreference='Stop'
 if([DateTimeOffset]::Now -ge $Deadline){throw 'The requested test deadline has passed.'}
+if($Demo -and $Seconds -eq 0){$Seconds=300}
 $Root=[IO.Path]::GetFullPath($Root)
 $gameRoot=Split-Path $Root -Parent
 $nativeRoot=Join-Path $gameRoot 'platform/steam'
@@ -22,7 +23,7 @@ foreach($name in @('UE4SS.dll','UE4SS-settings.ini','MemberVariableLayout.ini','
 }
 if(Test-Path -LiteralPath $proxy){if((Get-FileHash -LiteralPath $proxy).Hash -ne (Get-FileHash -LiteralPath (Join-Path $loader 'dwmapi.dll')).Hash){throw 'A different existing proxy loader was found.'}}
 . (Join-Path $PSScriptRoot 'MinecraftArgs.ps1')
-$bundle=[IO.Path]::GetFullPath([string]$config.MinecraftBundle)
+$bundle=[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted([string]$config.MinecraftBundle)){[string]$config.MinecraftBundle}else{Join-Path $Root ([string]$config.MinecraftBundle)}))
 [IO.Directory]::CreateDirectory((Join-Path $Root 'logs'))|Out-Null
 $mc=New-PBZCraftMinecraftArgs $Root $bundle
 $stamp=Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -44,14 +45,14 @@ try {
     if(!$proxyWasPresent){Copy-Item -LiteralPath (Join-Path $loader 'dwmapi.dll') -Destination $proxy}
     $env:PBZCRAFT_DEADLINE=$Deadline.ToString('o')
     $env:PBZCRAFT_EXCHANGE=Join-Path $Root ('exchange/'+$stamp)
-    $arguments=@(('"'+$Root+'"'),($Seconds-10),'native','overlay','preview','nocapture')
+    $arguments=@(('"'+$Root+'"'),$(if($Seconds -gt 0){$Seconds-10}else{0}),'native','overlay','preview','nocapture')
     if(!$Demo){$arguments+='interactive'}
     $hostProcess=Start-Process -FilePath (Join-Path $Root 'host/PBZCraft.Trial.exe') -ArgumentList $arguments -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Root ('logs/'+$stamp+'-host.log')) -RedirectStandardError (Join-Path $Root ('logs/'+$stamp+'-host-error.log')) -PassThru
     $minecraft=Start-Process -FilePath $mc.Java -ArgumentList ('@"'+$mc.Arguments+'"') -WorkingDirectory $mc.Directory -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Root ('logs/'+$stamp+'-minecraft.log')) -RedirectStandardError (Join-Path $Root ('logs/'+$stamp+'-minecraft-error.log')) -PassThru
     $info=[Diagnostics.ProcessStartInfo]::new()
     $info.FileName=$nativeExe;$info.WorkingDirectory=$nativeRoot;$info.UseShellExecute=$false;$info.CreateNoWindow=$true
     $info.Environment['SteamAppId']='4115450';$info.Environment['SteamGameId']='4115450'
-    $info.Environment['PBZCRAFT_PROBE_SECONDS']=[string]($Seconds+5)
+    $info.Environment['PBZCRAFT_PROBE_SECONDS']=[string]$(if($Seconds -gt 0){$Seconds+5}else{0})
     $info.Environment['PBZCRAFT_MOD_ROOT']=Join-Path $nativeLoader 'Mods/PBZProbe'
     $info.Environment['PBZCRAFT_EXCHANGE']=$env:PBZCRAFT_EXCHANGE
     $info.Environment['PBZCRAFT_TEXTURE_BRIGHTNESS']=[string]$(if($null -ne $config.TextureBrightness){[Math]::Clamp([double]$config.TextureBrightness,0.01,1)}else{0.15})
@@ -59,21 +60,23 @@ try {
     foreach($arg in @('ProjectPBZ',('-basedir='+(Join-Path $gameRoot 'ProjectPBZ/Binaries/Win64')),'-pc-platform=Steam','-windowed')){$info.ArgumentList.Add($arg)}
     if($Demo){$info.ArgumentList.Add('-unattended')}
     $game=[Diagnostics.Process]::Start($info)
-    @{GamePID=$game.Id;HostPID=$hostProcess.Id;MinecraftPID=$minecraft.Id;Started=(Get-Date).ToString('o');Demo=[bool]$Demo}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $Root 'current-run.json') -Encoding utf8
-    Write-Host 'PBZCraft preview started. Native gameplay stays paused; movement is limited to 3 metres. F9 ends the preview.'
+    @{GamePID=$game.Id;HostPID=$hostProcess.Id;MinecraftPID=$minecraft.Id;Started=(Get-Date).ToString('o');Demo=[bool]$Demo;Seconds=$Seconds;MinecraftBundle=$bundle}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $Root 'current-run.json') -Encoding utf8
+    Write-Host 'PBZCraft preview started. Native world stays running; MC owns player movement. F9 ends the preview.'
     $timer=[Diagnostics.Stopwatch]::StartNew()
-    while(!$game.HasExited -and $timer.Elapsed.TotalSeconds -lt $Seconds -and [DateTimeOffset]::Now -lt $Deadline) {
-        if($hostProcess.HasExited){Request-NativeQuit;break}
+    while(!$game.HasExited -and ($Seconds -eq 0 -or $timer.Elapsed.TotalSeconds -lt $Seconds) -and [DateTimeOffset]::Now -lt $Deadline) {
+        if($minecraft.HasExited){throw ('Minecraft 启动或运行失败，请查看 PBZCraft/logs/'+$stamp+'-minecraft-error.log')}
+        if($hostProcess.HasExited){if($hostProcess.ExitCode -ne 0){throw ('桥接程序运行失败，请查看 PBZCraft/logs/'+$stamp+'-host-error.log')};Request-NativeQuit;break}
         $game.WaitForExit(500)|Out-Null
     }
 } finally {
     $expired=[DateTimeOffset]::Now -ge $Deadline
     Remove-Item Env:PBZCRAFT_DEADLINE -ErrorAction SilentlyContinue
     Remove-Item Env:PBZCRAFT_EXCHANGE -ErrorAction SilentlyContinue
+    if($hostProcess -and !$hostProcess.HasExited){$stopRoot=Join-Path $Root ('exchange/'+$stamp);[IO.Directory]::CreateDirectory($stopRoot)|Out-Null;[IO.File]::WriteAllText((Join-Path $stopRoot 'stop.request'),'stop')}
     if($game -and !$game.HasExited){if(!$expired){Request-NativeQuit;$game.WaitForExit(8000)|Out-Null};if(!$game.HasExited){$forced=$true;$game.Kill();$game.WaitForExit(3000)|Out-Null}}
     foreach($owned in @($hostProcess,$minecraft)){if($owned -and !$owned.HasExited){if(!$expired){$owned.WaitForExit(12000)|Out-Null};if(!$owned.HasExited){$forced=$true;$owned.Kill();$owned.WaitForExit(3000)|Out-Null}}}
-    if(!$proxyWasPresent -and (Test-Path -LiteralPath $proxy) -and !(Get-Process PBZ -ErrorAction SilentlyContinue)){Remove-Item -LiteralPath $proxy}
-    if((Test-Path -LiteralPath $saveBackup) -and !(Get-Process PBZ -ErrorAction SilentlyContinue)) {
+    if(!$proxyWasPresent -and (Test-Path -LiteralPath $proxy) -and !(Get-Process PBZ -ErrorAction SilentlyContinue | Where-Object {!$_.HasExited})){Remove-Item -LiteralPath $proxy}
+    if((Test-Path -LiteralPath $saveBackup) -and !(Get-Process PBZ -ErrorAction SilentlyContinue | Where-Object {!$_.HasExited})) {
         $resolvedSave=[IO.Path]::GetFullPath($saveRoot)
         foreach($file in Get-ChildItem -LiteralPath $saveRoot -File -Recurse) {
             $relative=[IO.Path]::GetRelativePath($resolvedSave,$file.FullName)

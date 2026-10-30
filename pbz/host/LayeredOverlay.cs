@@ -13,9 +13,11 @@ internal sealed class LayeredOverlay : IDisposable
     public int Presented;
     public string? Error;
     public int ViewportWidth=1280,ViewportHeight=720;
+    public readonly WindowInput Input=new();
 
     public LayeredOverlay()
     {
+        Input.Start();
         thread=new Thread(Run){IsBackground=true,Name="PBZCraft overlay"};
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
@@ -30,6 +32,7 @@ internal sealed class LayeredOverlay : IDisposable
     public void Dispose()
     {
         stopping=true;thread.Join(2000);
+        Input.Dispose();
         var dropped=Interlocked.Exchange(ref pending,null);
         if(dropped is not null) ArrayPool<byte>.Shared.Return(dropped.Pixels);
     }
@@ -51,6 +54,7 @@ internal sealed class LayeredOverlay : IDisposable
                 {
                     owner=Process.GetProcessesByName("PBZ").Select(p=>p.MainWindowHandle).FirstOrDefault(h=>h!=0);
                     if(owner!=0) SetWindowLongPtr(form.Handle,-8,owner);
+                    Input.SetOwner(owner);
                 }
                 if(owner!=0 && GetClientRect(owner,out var viewport) && viewport.Right>0 && viewport.Bottom>0)
                 { ViewportWidth=viewport.Right;ViewportHeight=viewport.Bottom; }

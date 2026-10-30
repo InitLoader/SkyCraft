@@ -22,7 +22,8 @@ internal static class Program
         using var native = new NativeIpc();
         using var overlay = overlayMode ? new LayeredOverlay() : null;
         var surface = new NativeSurface();
-        var renderCapture=new RenderCapture(Environment.GetEnvironmentVariable("PBZCRAFT_EXCHANGE")??Path.Combine(root,"exchange","render"));
+        string exchange=Environment.GetEnvironmentVariable("PBZCRAFT_EXCHANGE")??Path.Combine(root,"exchange","render");
+        var renderCapture=new RenderCapture(exchange);
         var actions=new TrialActions();
         var input=new NativeInputRelay();
         var entities=new EntityCapture();
@@ -33,11 +34,13 @@ internal static class Program
         double crackSince=0;
         double maxTravel=0,maxHeight=double.MinValue,minHeight=double.MaxValue;
         double ox=0,oy=0,oz=0, px=0,py=128,pz=0,yaw=0,pitch=0, stableSince=0, inventoryAt=0, nextReport=0;
+        double previousLoop=0,maxLoop=0;
         double[] pose=[];
         McState mc=default;
-        while(timer.Elapsed.TotalSeconds<seconds && DateTimeOffset.Now<Deadline)
+        while((seconds<=0 || timer.Elapsed.TotalSeconds<seconds) && DateTimeOffset.Now<Deadline && !File.Exists(Path.Combine(exchange,"stop.request")))
         {
             double now=timer.Elapsed.TotalSeconds;
+            if(previousLoop>0)maxLoop=Math.Max(maxLoop,(now-previousLoop)*1000);previousLoop=now;
             bool nativeReady=nativeMode && native.Read(out pose) && pose.Length>=218;
             if(nativeReady)
             {
@@ -57,7 +60,12 @@ internal static class Program
                 surface.Publish(link,pose,ox,oy,oz);
             }
             int viewportWidth=Math.Clamp(overlay?.ViewportWidth??1280,1,3840),viewportHeight=Math.Clamp(overlay?.ViewportHeight??720,1,2160);
-            if(interactive && nativeReady)input.Step(link,pose,mc,viewportWidth,viewportHeight,ref yaw,ref pitch);
+            if(interactive && nativeReady && overlay is not null)
+            {
+                overlay.Input.Enabled=link.Connected && (mc.Flags&Protocol.McInWorld)!=0 && mc.TeleportAck==1;
+                overlay.Input.Read(pose);
+                input.Step(link,pose,mc,viewportWidth,viewportHeight,ref yaw,ref pitch);
+            }
             if(input.ExitRequested)break;
             link.Heartbeat();
             uint seq=link.BeginWrite(Protocol.Sky);
@@ -129,14 +137,16 @@ internal static class Program
             if(now>=nextReport)
             {
                 nextReport=now+5;
-                Console.WriteLine($"[PBZCraftTrial] native={nativeReady}, linked={link.Connected}, flags={mc.Flags}, ack={mc.TeleportAck}, frames={frames}, presented={overlay?.Presented??0}, messages={renderMessages}, sections={renderCapture.SectionUpdates}, mode={mc.CameraMode}, testStage={actions.Stage}, xyz={mc.X:F3},{mc.Y:F3},{mc.Z:F3}, inventory={inventorySaved}");
+                Console.WriteLine($"[PBZCraftTrial] inputQueued={link.U64(Protocol.Input)-link.U64(Protocol.Input+64)}, maxLoopMs={maxLoop:F1}, mcFrameAgeMs={(mc.FrameQpc>0?(Stopwatch.GetTimestamp()-mc.FrameQpc)*1000.0/Stopwatch.Frequency:-1):F1}, avatarWrites={renderCapture.AvatarUpdates}, paused={(nativeReady?pose[10]:-1)}, inputError={overlay?.Input.Error??"none"}");maxLoop=0;
+                Console.WriteLine($"[PBZCraftTrial] native={nativeReady}, linked={link.Connected}, flags={mc.Flags}, ack={mc.TeleportAck}, frames={frames}, presented={overlay?.Presented??0}, messages={renderMessages}, sections={renderCapture.SectionUpdates}, mode={mc.CameraMode}, testStage={actions.Stage}, xyz={mc.X:F3},{mc.Y:F3},{mc.Z:F3}, inventory={inventorySaved}, focused={overlay?.Input.Focused??false}, keyMask={overlay?.Input.Mask??0}, mousePackets={overlay?.Input.MousePackets??0}");
+                Console.Out.Flush();
             }
             await Task.Delay(12);
         }
         native.Write(-1,0,0,90,0,0);
         link.Input(Protocol.ReleaseAll);
         await Task.Delay(600);
-        File.WriteAllText(Path.Combine(root,resultFile),JsonSerializer.Serialize(new { interactive,nativeCaptures,frames,renderMessages,events,firstSaved,inventorySaved,thirdSaved,jumpSaved,crackSaved,visible,nativeSamples,surface.Hits,surface.Triangles,maxTravel,maxHeight,minHeight,renderCapture.SharingRetries,renderCapture.PendingWrites,renderCapture.SectionUpdates,entities.PeakCracks,entities.PeakItems,testStage=actions.Stage,presented=overlay?.Presented??0,overlayError=overlay?.Error,seconds=timer.Elapsed.TotalSeconds,mcFlags=mc.Flags,ack=mc.TeleportAck,scope="Paused native scene, local native capsule queries bounded to 3m; MC inventory, camera and placement trial. No full-map or combat acceptance." },new JsonSerializerOptions{WriteIndented=true}));
+        File.WriteAllText(Path.Combine(root,resultFile),JsonSerializer.Serialize(new { interactive,nativeCaptures,frames,renderMessages,events,firstSaved,inventorySaved,thirdSaved,jumpSaved,crackSaved,visible,nativeSamples,surface.Hits,surface.Triangles,maxTravel,maxHeight,minHeight,renderCapture.SharingRetries,renderCapture.PendingWrites,renderCapture.SectionUpdates,entities.PeakCracks,entities.PeakItems,testStage=actions.Stage,presented=overlay?.Presented??0,overlayError=overlay?.Error,seconds=timer.Elapsed.TotalSeconds,mcFlags=mc.Flags,ack=mc.TeleportAck,scope="Native world running, MC movement uses native capsule sweeps without a fixed arena boundary. No full-map or combat acceptance." },new JsonSerializerOptions{WriteIndented=true}));
         return (interactive?everWorld:firstSaved && inventorySaved) && (!nativeMode || nativeSamples>0) ? 0:2;
     }
 }

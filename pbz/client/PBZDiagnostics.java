@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public final class PBZDiagnostics implements ClientModInitializer {
+    public static long inputSamples,inputTotalMs,inputMaxMs,inputLastMs;
     private String previous = "";
     @Override public void onInitializeClient() {
         var executor = Executors.newSingleThreadScheduledExecutor(r -> { var t = new Thread(r, "PBZCraft diagnostics"); t.setDaemon(true); return t; });
@@ -24,6 +25,7 @@ public final class PBZDiagnostics implements ClientModInitializer {
                 + ", nativeQueries=" + NativeCollision.queries + ", nativeTimeouts=" + NativeCollision.timeouts + ", nativeRejected=" + NativeCollision.rejected
                 + ", nativeAvgMs=" + (NativeCollision.queries==0?0:NativeCollision.totalNanos/1e6/NativeCollision.queries)
                 + ", nativeMaxMs=" + NativeCollision.maxNanos/1e6
+                + ", inputSamples=" + inputSamples + ", inputAvgMs=" + (inputSamples==0?0:(double)inputTotalMs/inputSamples) + ", inputMaxMs=" + inputMaxMs + ", inputLastMs=" + inputLastMs
                 + ", directRay=" + (mc.player == null ? "none" : dev.skycraft.world.SkyClip.cast(mc.player.getEyePosition(),mc.player.getEyePosition().add(mc.player.getViewVector(1).scale(4.5))));
             if (state.equals(previous)) return;
             previous = state;

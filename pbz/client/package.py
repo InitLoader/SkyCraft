@@ -20,7 +20,7 @@ with ZipFile(source) as old, ZipFile(target, "w", ZIP_DEFLATED) as new:
         data = old.read(entry.filename)
         if entry.filename == "fabric.mod.json":
             metadata = json.loads(data)
-            metadata.update(id="pbzcraft", name="PBZCraft", version="0.0.1-pbz-trial")
+            metadata.update(id="pbzcraft", name="PBZCraft", version="0.0.2-pbz-preview")
             metadata["entrypoints"]["client"].append("dev.pbzcraft.PBZDiagnostics")
             metadata["mixins"].append("pbzcraft.client.mixins.json")
             data = json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8")
@@ -29,7 +29,7 @@ with ZipFile(source) as old, ZipFile(target, "w", ZIP_DEFLATED) as new:
             mixins["client"].remove("EntityCollideMixin")
             data = json.dumps(mixins, indent=2).encode("utf-8")
         new.writestr(entry, data)
-    new.writestr("pbzcraft.client.mixins.json", json.dumps({"required": True, "package": "dev.pbzcraft.mixin", "compatibilityLevel": "JAVA_25", "client": ["PBZEntityCollideMixin"], "injectors": {"defaultRequire": 1}}, indent=2))
+    new.writestr("pbzcraft.client.mixins.json", json.dumps({"required": True, "package": "dev.pbzcraft.mixin", "compatibilityLevel": "JAVA_25", "client": ["PBZEntityCollideMixin","PBZInputTraceMixin"], "injectors": {"defaultRequire": 1}}, indent=2))
     for file in (root / "client/classes").rglob("*.class"):
         new.write(file, file.relative_to(root / "client/classes").as_posix())
 print("Packaged isolated PBZCraft client diagnostics; original bridge classes preserved")

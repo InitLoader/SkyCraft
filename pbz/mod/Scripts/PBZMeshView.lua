@@ -5,6 +5,7 @@ local root=os.getenv("PBZCRAFT_EXCHANGE")
 local owner=nil
 local origin=nil
 local meshes={}
+local meshCounts={}
 local textures={}
 local materials={}
 local sections={}
@@ -65,7 +66,7 @@ end
 local function build(pawn,key,data,start,first,count,id,offset)
     if count<0 or count>50000 or start+(first+count)*32-1>#data then error("Invalid MC mesh bounds") end
     local mesh=component(pawn,key)
-    if count==0 then mesh:ClearAllMeshSections();return true end
+    if count==0 then mesh:ClearAllMeshSections();meshCounts[key]=nil;return true end
     local surface=material(pawn,mesh,id)
     if not surface then return false end
     local vertices,indices,uv,colors,normals={},{},{},{},{}
@@ -86,7 +87,9 @@ local function build(pawn,key,data,start,first,count,id,offset)
         normals[index+1]=normal;normals[index+2]=normal;normals[index+3]=normal
     end
     mesh:SetMaterial(0,surface)
-    mesh:CreateMeshSection(0,vertices,indices,normals,uv,colors,{},false)
+    if meshCounts[key]==count then mesh:UpdateMeshSection(0,vertices,normals,uv,colors,{})
+    else mesh:CreateMeshSection(0,vertices,indices,normals,uv,colors,{},false) end
+    meshCounts[key]=count
     if not inspected[key] then
         inspected[key]=true
         local applied=mesh:GetMaterial(0)
@@ -112,10 +115,13 @@ function MeshView.step(pawn,visible,intent)
     if not owner or not owner:IsValid() then
         origin=Origin.get(pawn)
         owner=pawn:GetWorld():SpawnActor(StaticFindObject("/Script/Engine.Actor"),origin,{Pitch=0,Yaw=0,Roll=0})
-        meshes={};sections={};materials={};textures={};previousAvatar=nil;previousEntities=nil
+        local anchor=owner:AddComponentByClass(StaticFindObject("/Script/Engine.SceneComponent"),false,identity,false)
+        assert(anchor and anchor:IsValid(),"Cannot create MC mesh root")
+        meshes={};meshCounts={};sections={};materials={};textures={};previousAvatar=nil;previousEntities=nil
         print("[PBZProbe] Owned MC world mesh actor created.\n")
     end
-    if os.clock()-lastPoll<0.1 then return end
+    local pollWorld=os.clock()-lastPoll>=0.1
+    if pollWorld then
     lastPoll=os.clock()
     local manifest=read("sections.txt") or ""
     local current={}
@@ -132,7 +138,8 @@ function MeshView.step(pawn,visible,intent)
             end
         end
     end
-    for name in pairs(sections) do if not current[name] then if meshes[name] and meshes[name]:IsValid() then meshes[name]:ClearAllMeshSections() end;sections[name]=nil end end
+    for name in pairs(sections) do if not current[name] then if meshes[name] and meshes[name]:IsValid() then meshes[name]:ClearAllMeshSections() end;sections[name]=nil;meshCounts[name]=nil end end
+    end
     local data=read("avatar.bin")
     if data and data~=previousAvatar and #data>=8 then
         local batches,count=string.unpack("<I4I4",data)
@@ -141,19 +148,26 @@ function MeshView.step(pawn,visible,intent)
         local complete=true
         for index=0,batches-1 do
             local id,first,n=string.unpack("<I4I4I4",data,9+index*16)
-            local feet=intent and intent.FeetWorld or origin
-            if not build(pawn,"avatar"..index,data,9+batches*16,first,n,id,{X=feet.X-origin.X,Y=feet.Y-origin.Y,Z=feet.Z-origin.Z}) then complete=false end
+            if not build(pawn,"avatar"..index,data,9+batches*16,first,n,id,{X=0,Y=0,Z=0}) then complete=false end
         end
-        for index=batches,63 do local mesh=meshes["avatar"..index];if mesh and mesh:IsValid() then mesh:ClearAllMeshSections() end end
+        for index=batches,63 do local key="avatar"..index;local mesh=meshes[key];if mesh and mesh:IsValid() then mesh:ClearAllMeshSections();meshCounts[key]=nil end end
         if complete then previousAvatar=data end
     end
+    local feet=intent and intent.FeetWorld or origin
+    for index=0,63 do
+        local key="avatar"..index;local mesh=meshes[key]
+        if meshCounts[key] and mesh and mesh:IsValid() then
+            mesh:K2_SetRelativeLocation({X=feet.X-origin.X,Y=feet.Y-origin.Y,Z=feet.Z-origin.Z},false,{},true)
+        end
+    end
+    if not pollWorld then return end
     local entities=read("entities.bin")
     if entities and entities~=previousEntities and #entities>=8 then
         local batches,count=string.unpack("<I4I4",entities)
         assert(batches<=1 and count<=50000 and #entities==8+batches*16+count*32,"Invalid MC world entities")
         if batches>0 then
             if not build(pawn,"worldentities",entities,25,0,count,0,{X=0,Y=0,Z=-12800}) then return end
-        elseif meshes.worldentities and meshes.worldentities:IsValid() then meshes.worldentities:ClearAllMeshSections() end
+        elseif meshes.worldentities and meshes.worldentities:IsValid() then meshes.worldentities:ClearAllMeshSections();meshCounts.worldentities=nil end
         previousEntities=entities
     end
 end

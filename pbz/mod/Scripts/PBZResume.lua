@@ -1,16 +1,16 @@
 local Resume = {}
 local requested = false
-local paused = false
+local resumed = false
 
 function Resume.step(controller)
     local pawn = controller.Pawn
     if pawn and pawn:IsValid() and pawn:IsA("/Script/Engine.Character") then
-        if not paused then
+        if not resumed then
             local statics = StaticFindObject("/Script/Engine.Default__GameplayStatics")
             assert(statics:IsValid(), "GameplayStatics is not available")
-            statics:SetGamePaused(pawn, true)
-            paused = true
-            print("[PBZProbe] Loaded player detected; native gameplay paused for background inspection.\n")
+            statics:SetGamePaused(pawn, false)
+            resumed = true
+            print("[PBZProbe] Loaded player detected; native world remains running.\n")
         end
         return
     end

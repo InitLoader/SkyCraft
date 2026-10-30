@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="..\host\RenderCapture.cs" Link="RenderCapture.cs" />
     <Compile Include="..\host\NativeInputRelay.cs" Link="NativeInputRelay.cs" />
+    <Compile Include="..\host\WindowInput.cs" Link="WindowInput.cs" />
     <Compile Include="..\..\duckov\src\Link\SharedLink.cs" Link="SharedLink.cs" />
     <Compile Include="..\..\duckov\src\Link\Protocol.cs" Link="Protocol.cs" />
   </ItemGroup>
