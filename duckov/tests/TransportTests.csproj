@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DuckovDir Condition="'$(DuckovDir)' == ''">$(DUCKOV_GAME_DIR)</DuckovDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="TransportTests.cs" />
+    <Compile Include="..\src\Link\Protocol.cs" Link="Protocol.cs" />
+    <Compile Include="..\src\Link\SharedLink.cs" Link="SharedLink.cs" />
+    <Compile Include="..\src\World\CollisionCoverage.cs" Link="CollisionCoverage.cs" />
+    <Compile Include="..\src\World\CollisionGeometry.cs" Link="CollisionGeometry.cs" />
+    <Compile Include="..\src\World\TerrainCell.cs" Link="TerrainCell.cs" />
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(DuckovDir)\Duckov_Data\Managed\UnityEngine.CoreModule.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

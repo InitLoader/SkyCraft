@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <SulfurDir Condition="'$(SulfurDir)' == ''">$(SULFUR_GAME_DIR)</SulfurDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="GeometryTests.cs" />
+    <Compile Include="..\src\World\CollisionGeometry.cs" Link="CollisionGeometry.cs" />
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(SulfurDir)\Sulfur_Data\Managed\UnityEngine.CoreModule.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

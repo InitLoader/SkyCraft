@@ -54,15 +54,24 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+	if (providers.gradleProperty('bridgeHost').orElse('skyrim').get() == 'sulfur') {
+		systemProperty 'skycraft.host', 'sulfur'
+	}
 	testLogging { events "passed", "failed"; exceptionFormat "full" }
 }
 
 processResources {
 	def version = project.version
 	inputs.property "version", version
+	inputs.property "bridgeHost", providers.gradleProperty('bridgeHost').orElse('skyrim').get()
 
 	filesMatching("fabric.mod.json") {
 		expand "version": version
+	}
+	if (providers.gradleProperty('bridgeHost').orElse('skyrim').get() == 'sulfur') {
+		from('../sulfur/client') {
+			include 'skycraft-host.properties'
+		}
 	}
 }
 

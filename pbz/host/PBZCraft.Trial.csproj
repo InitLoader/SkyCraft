@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\duckov\src\Link\SharedLink.cs" Link="Transport\SharedLink.cs" />
+    <Compile Include="..\..\duckov\src\Link\Protocol.cs" Link="Transport\Protocol.cs" />
+  </ItemGroup>
+</Project>

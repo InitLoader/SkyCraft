@@ -1,5 +1,8 @@
 # SkyCraft
 
+An experimental Unity/BepInEx host for SULFUR is available in [sulfur/README.md](sulfur/README.md).
+Its supported features and validation limits are documented separately below that directory.
+
 ![SkyCraft: a Minecraft player walking through Riverwood with the Minecraft HUD](docs/screenshot.jpg)
 
 Play Skyrim as a Minecraft player. You move with Minecraft's physics, carry Minecraft's inventory

@@ -16,6 +16,14 @@ public abstract class MinecraftMixin {
 
 	@Inject(
 		method = "renderFrame",
+		at = @At("HEAD")
+	)
+	private void skycraft$beforeRender(boolean advanceGameTime, CallbackInfo ci) {
+		SkyClient.beforeRender();
+	}
+
+	@Inject(
+		method = "renderFrame",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.AFTER)
 	)
 	private void skycraft$afterRender(boolean advanceGameTime, CallbackInfo ci) {

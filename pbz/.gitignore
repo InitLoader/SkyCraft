@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+client/classes/
+build/
+native/*.dll
+native/*.def
+native/*.exp
+native/*.lib
+native/*.obj
+**/__pycache__/
